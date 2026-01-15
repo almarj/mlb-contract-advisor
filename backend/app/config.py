@@ -5,10 +5,8 @@ import os
 from pathlib import Path
 
 # Base paths
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DATA_DIR = BASE_DIR / "Data"
-MODELS_DIR = DATA_DIR / "Models"
-MASTER_DATA_DIR = DATA_DIR / "Master Data"
+BASE_DIR = Path(__file__).resolve().parent.parent  # backend folder
+MODELS_DIR = BASE_DIR / "models"  # backend/models folder
 
 # Database
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/mlb_contracts.db")
