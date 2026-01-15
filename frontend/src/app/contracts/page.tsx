@@ -128,7 +128,7 @@ export default function ContractsPage() {
             {error && (
               <div className="text-center py-8 text-destructive">
                 <p>Failed to load contracts. Make sure the backend is running.</p>
-                <p className="text-sm mt-2">Backend URL: http://localhost:8000</p>
+                <p className="text-sm mt-2">Backend URL: {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}</p>
               </div>
             )}
 
