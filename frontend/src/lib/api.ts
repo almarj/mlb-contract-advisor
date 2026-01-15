@@ -1,0 +1,196 @@
+/**
+ * API client for MLB Contract Advisor backend
+ */
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+export interface PredictionRequest {
+  name: string;
+  position: string;
+  age: number;
+  war_3yr: number;
+  wrc_plus_3yr?: number;
+  avg_3yr?: number;
+  obp_3yr?: number;
+  slg_3yr?: number;
+  hr_3yr?: number;
+  era_3yr?: number;
+  fip_3yr?: number;
+  k_9_3yr?: number;
+  bb_9_3yr?: number;
+  ip_3yr?: number;
+  avg_exit_velo?: number;
+  barrel_rate?: number;
+  max_exit_velo?: number;
+  hard_hit_pct?: number;
+}
+
+export interface ComparablePlayer {
+  name: string;
+  position: string;
+  year_signed: number;
+  age_at_signing: number;
+  aav: number;
+  length: number;
+  war_3yr: number;
+  similarity_score: number;
+}
+
+export interface PredictionResponse {
+  player_name: string;
+  position: string;
+  predicted_aav: number;
+  predicted_aav_low: number;
+  predicted_aav_high: number;
+  predicted_length: number;
+  confidence_score: number;
+  comparables: ComparablePlayer[];
+  feature_importance: Record<string, number>;
+  model_accuracy: number;
+}
+
+export interface PlayerStats {
+  name: string;
+  position: string;
+  age_at_signing: number;
+  year_signed: number;
+  war_3yr: number | null;
+  wrc_plus_3yr: number | null;
+  avg_3yr: number | null;
+  obp_3yr: number | null;
+  slg_3yr: number | null;
+  hr_3yr: number | null;
+  era_3yr: number | null;
+  fip_3yr: number | null;
+  k_9_3yr: number | null;
+  bb_9_3yr: number | null;
+  ip_3yr: number | null;
+  avg_exit_velo: number | null;
+  barrel_rate: number | null;
+  max_exit_velo: number | null;
+  hard_hit_pct: number | null;
+}
+
+export interface PlayerSearchResult {
+  id: number;
+  name: string;
+  position: string;
+  team: string | null;
+  is_pitcher: boolean;
+  stats: PlayerStats | null;
+}
+
+export interface ContractRecord {
+  id: number;
+  player_name: string;
+  position: string;
+  year_signed: number;
+  age_at_signing: number;
+  aav: number;
+  total_value: number;
+  length: number;
+  war_3yr: number | null;
+}
+
+export interface ContractListResponse {
+  contracts: ContractRecord[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
+// API Functions
+export async function createPrediction(data: PredictionRequest): Promise<PredictionResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/predictions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Prediction failed');
+  }
+
+  return response.json();
+}
+
+export async function searchPlayers(query: string): Promise<PlayerSearchResult[]> {
+  if (query.length < 2) return [];
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/players/search?q=${encodeURIComponent(query)}`);
+
+  if (!response.ok) {
+    throw new Error('Search failed');
+  }
+
+  const data = await response.json();
+  return data.results;
+}
+
+export async function getContracts(params: {
+  page?: number;
+  per_page?: number;
+  position?: string;
+  year_min?: number;
+  year_max?: number;
+  search?: string;
+  sort_by?: string;
+  sort_order?: string;
+}): Promise<ContractListResponse> {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      searchParams.append(key, String(value));
+    }
+  });
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/contracts?${searchParams}`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch contracts');
+  }
+
+  return response.json();
+}
+
+export async function checkHealth(): Promise<{ status: string; models_loaded: boolean }> {
+  const response = await fetch(`${API_BASE_URL}/health`);
+  return response.json();
+}
+
+// Utility functions
+export function formatCurrency(value: number): string {
+  if (value >= 1_000_000) {
+    return `$${(value / 1_000_000).toFixed(1)}M`;
+  }
+  return `$${value.toLocaleString()}`;
+}
+
+export function formatAAV(value: number): string {
+  return `$${(value / 1_000_000).toFixed(1)}M`;
+}
+
+export const PITCHER_POSITIONS = ['SP', 'RP', 'P', 'CL'];
+
+export function isPitcher(position: string): boolean {
+  return PITCHER_POSITIONS.includes(position.toUpperCase());
+}
+
+export const POSITIONS = [
+  { value: 'SP', label: 'Starting Pitcher' },
+  { value: 'RP', label: 'Relief Pitcher' },
+  { value: 'C', label: 'Catcher' },
+  { value: '1B', label: 'First Base' },
+  { value: '2B', label: 'Second Base' },
+  { value: '3B', label: 'Third Base' },
+  { value: 'SS', label: 'Shortstop' },
+  { value: 'LF', label: 'Left Field' },
+  { value: 'CF', label: 'Center Field' },
+  { value: 'RF', label: 'Right Field' },
+  { value: 'DH', label: 'Designated Hitter' },
+];
