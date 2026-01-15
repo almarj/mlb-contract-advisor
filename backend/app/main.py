@@ -11,7 +11,10 @@ from app.config import (
     API_V1_PREFIX,
     PROJECT_NAME,
     VERSION,
-    ALLOWED_ORIGINS
+    ALLOWED_ORIGINS,
+    BASE_DIR,
+    MODELS_DIR,
+    DATABASE_URL
 )
 from app.models.database import init_db, SessionLocal
 from app.models.schemas import HealthResponse
@@ -24,6 +27,13 @@ async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
     # Startup
     print("Starting MLB Contract Advisor API...")
+    print(f"BASE_DIR: {BASE_DIR}")
+    print(f"MODELS_DIR: {MODELS_DIR}")
+    print(f"DATABASE_URL: {DATABASE_URL}")
+    print(f"Models dir exists: {MODELS_DIR.exists()}")
+    if MODELS_DIR.exists():
+        import os
+        print(f"Models dir contents: {os.listdir(MODELS_DIR)}")
 
     # Initialize database
     print("Initializing database...")

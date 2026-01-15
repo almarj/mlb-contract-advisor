@@ -7,6 +7,7 @@ from pathlib import Path
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent  # backend folder
 MODELS_DIR = BASE_DIR / "models"  # backend/models folder
+MASTER_DATA_DIR = BASE_DIR  # For CSV files (not used in deployment)
 
 # Database
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/mlb_contracts.db")
