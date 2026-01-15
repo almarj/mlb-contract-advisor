@@ -43,3 +43,9 @@ npm-debug.log*
 # Misc
 *.pyc
 *.pem
+
+# Private docs (BRD/PRD)
+BRD.md
+PRD.md
+*_BRD.docx
+*_PRD.docx
