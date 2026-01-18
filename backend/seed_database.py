@@ -91,6 +91,60 @@ def calculate_3yr_avg_pitcher(player_seasons: pd.DataFrame) -> dict:
     }
 
 
+def calculate_recent_stats_batter(player_name: str, batting_df: pd.DataFrame, years: list) -> dict:
+    """
+    Calculate recent 3-year stats for a batter.
+    Returns None values if player not found or insufficient data.
+    """
+    norm_name = normalize_name(player_name)
+    player_seasons = batting_df[batting_df['_normalized_name'] == norm_name]
+
+    if len(player_seasons) == 0:
+        return {}
+
+    # Filter to recent years
+    recent = player_seasons[player_seasons['Season'].isin(years)]
+
+    if len(recent) == 0:
+        return {}
+
+    return {
+        'recent_war_3yr': recent['WAR'].mean() if 'WAR' in recent.columns else None,
+        'recent_wrc_plus_3yr': recent['wRC+'].mean() if 'wRC+' in recent.columns else None,
+        'recent_avg_3yr': recent['AVG'].mean() if 'AVG' in recent.columns else None,
+        'recent_obp_3yr': recent['OBP'].mean() if 'OBP' in recent.columns else None,
+        'recent_slg_3yr': recent['SLG'].mean() if 'SLG' in recent.columns else None,
+        'recent_hr_3yr': recent['HR'].mean() if 'HR' in recent.columns else None,
+    }
+
+
+def calculate_recent_stats_pitcher(player_name: str, pitching_df: pd.DataFrame, years: list) -> dict:
+    """
+    Calculate recent 3-year stats for a pitcher.
+    Returns None values if player not found or insufficient data.
+    """
+    norm_name = normalize_name(player_name)
+    player_seasons = pitching_df[pitching_df['_normalized_name'] == norm_name]
+
+    if len(player_seasons) == 0:
+        return {}
+
+    # Filter to recent years
+    recent = player_seasons[player_seasons['Season'].isin(years)]
+
+    if len(recent) == 0:
+        return {}
+
+    return {
+        'recent_war_3yr': recent['WAR'].mean() if 'WAR' in recent.columns else None,
+        'recent_era_3yr': recent['ERA'].mean() if 'ERA' in recent.columns else None,
+        'recent_fip_3yr': recent['FIP'].mean() if 'FIP' in recent.columns else None,
+        'recent_k_9_3yr': recent['K/9'].mean() if 'K/9' in recent.columns else None,
+        'recent_bb_9_3yr': recent['BB/9'].mean() if 'BB/9' in recent.columns else None,
+        'recent_ip_3yr': recent['IP'].mean() if 'IP' in recent.columns else None,
+    }
+
+
 def is_likely_extension(age: int, length: int) -> bool:
     """
     Determine if a contract is likely a pre-free agency extension.
@@ -107,23 +161,39 @@ def is_likely_extension(age: int, length: int) -> bool:
     return age <= 25 and length >= 6
 
 
-def seed_contracts(db, df):
-    """Seed contracts table from master dataset."""
+def seed_contracts(db, df, batting_df=None, pitching_df=None):
+    """Seed contracts table from master dataset with recent stats."""
     print(f"Seeding {len(df)} contracts...")
 
+    # Recent years for calculating current performance (2023-2025)
+    recent_years = [2023, 2024, 2025]
+
     extensions_count = 0
+    recent_stats_count = 0
 
     for _, row in df.iterrows():
         age = int(row['age_at_signing'])
         length = int(row['length'])
         is_ext = is_likely_extension(age, length)
+        position = row['position']
+        player_name = row['player_name']
 
         if is_ext:
             extensions_count += 1
 
+        # Calculate recent stats if FanGraphs data available
+        recent_stats = {}
+        if position in PITCHER_POSITIONS and pitching_df is not None:
+            recent_stats = calculate_recent_stats_pitcher(player_name, pitching_df, recent_years)
+        elif batting_df is not None:
+            recent_stats = calculate_recent_stats_batter(player_name, batting_df, recent_years)
+
+        if recent_stats:
+            recent_stats_count += 1
+
         contract = Contract(
-            player_name=row['player_name'],
-            position=row['position'],
+            player_name=player_name,
+            position=position,
             year_signed=int(row['year_signed']),
             age_at_signing=age,
             aav=float(row['AAV']),
@@ -145,11 +215,23 @@ def seed_contracts(db, df):
             max_exit_velo=float(row['max_exit_velo']) if pd.notna(row.get('max_exit_velo')) else None,
             hard_hit_pct=float(row['hard_hit_pct']) if pd.notna(row.get('hard_hit_pct')) else None,
             is_extension=is_ext,
+            # Recent performance stats
+            recent_war_3yr=recent_stats.get('recent_war_3yr'),
+            recent_wrc_plus_3yr=recent_stats.get('recent_wrc_plus_3yr'),
+            recent_avg_3yr=recent_stats.get('recent_avg_3yr'),
+            recent_obp_3yr=recent_stats.get('recent_obp_3yr'),
+            recent_slg_3yr=recent_stats.get('recent_slg_3yr'),
+            recent_hr_3yr=recent_stats.get('recent_hr_3yr'),
+            recent_era_3yr=recent_stats.get('recent_era_3yr'),
+            recent_fip_3yr=recent_stats.get('recent_fip_3yr'),
+            recent_k_9_3yr=recent_stats.get('recent_k_9_3yr'),
+            recent_bb_9_3yr=recent_stats.get('recent_bb_9_3yr'),
+            recent_ip_3yr=recent_stats.get('recent_ip_3yr'),
         )
         db.add(contract)
 
     db.commit()
-    print(f"Seeded {len(df)} contracts ({extensions_count} extensions)")
+    print(f"Seeded {len(df)} contracts ({extensions_count} extensions, {recent_stats_count} with recent stats)")
 
 
 def seed_signed_players(db, df):
@@ -326,6 +408,23 @@ def main():
     df = pd.read_csv(data_path)
     print(f"Loaded {len(df)} contracts from master dataset")
 
+    # Load FanGraphs data for recent stats
+    batting_path = FANGRAPHS_DATA_DIR / "fangraphs_batting_2015-2025.csv"
+    pitching_path = FANGRAPHS_DATA_DIR / "fangraphs_pitching_2015-2025.csv"
+
+    batting_df = None
+    pitching_df = None
+
+    if batting_path.exists() and pitching_path.exists():
+        batting_df = pd.read_csv(batting_path)
+        pitching_df = pd.read_csv(pitching_path)
+        # Add normalized names for matching
+        batting_df['_normalized_name'] = batting_df['Name'].apply(normalize_name)
+        pitching_df['_normalized_name'] = pitching_df['Name'].apply(normalize_name)
+        print(f"Loaded FanGraphs data: {len(batting_df)} batting, {len(pitching_df)} pitching seasons")
+    else:
+        print("Warning: FanGraphs data not found, skipping recent stats")
+
     # Create tables
     print("\nCreating database tables...")
     Base.metadata.drop_all(bind=engine)  # Clear existing data
@@ -335,7 +434,7 @@ def main():
     # Seed data
     db = SessionLocal()
     try:
-        seed_contracts(db, df)
+        seed_contracts(db, df, batting_df, pitching_df)
         signed_names = seed_signed_players(db, df)
         prospects_count = seed_prospects(db, signed_names)
         print("\nDatabase seeding complete!")

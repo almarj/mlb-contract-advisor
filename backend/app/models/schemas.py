@@ -86,6 +86,16 @@ class PredictionResponse(BaseModel):
     actual_aav: Optional[float] = Field(None, description="Actual AAV if player has signed contract")
     actual_length: Optional[int] = Field(None, description="Actual contract length if signed")
 
+    # Stats at signing (3 years prior to contract)
+    signing_war_3yr: Optional[float] = Field(None, description="WAR at time of signing")
+    signing_wrc_plus_3yr: Optional[float] = Field(None, description="wRC+ at time of signing")
+    signing_era_3yr: Optional[float] = Field(None, description="ERA at time of signing (pitchers)")
+
+    # Recent performance stats (last 3 years from current date)
+    recent_war_3yr: Optional[float] = Field(None, description="Recent 3-year WAR")
+    recent_wrc_plus_3yr: Optional[float] = Field(None, description="Recent 3-year wRC+")
+    recent_era_3yr: Optional[float] = Field(None, description="Recent 3-year ERA (pitchers)")
+
     # Confidence
     confidence_score: float = Field(..., ge=0, le=100, description="Model confidence %")
 

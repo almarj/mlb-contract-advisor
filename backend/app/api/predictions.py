@@ -74,6 +74,13 @@ async def create_prediction(request: PredictionRequest, db: Session = Depends(ge
         # Look up actual contract for this player (if exists)
         actual_aav = None
         actual_length = None
+        signing_war_3yr = None
+        signing_wrc_plus_3yr = None
+        signing_era_3yr = None
+        recent_war_3yr = None
+        recent_wrc_plus_3yr = None
+        recent_era_3yr = None
+        contract = None
 
         if request.name:
             # Try exact match first, then normalized match
@@ -94,6 +101,16 @@ async def create_prediction(request: PredictionRequest, db: Session = Depends(ge
                 actual_aav = contract.aav
                 actual_length = contract.length
 
+                # Stats at signing (pre-signing 3yr averages)
+                signing_war_3yr = contract.war_3yr
+                signing_wrc_plus_3yr = contract.wrc_plus_3yr
+                signing_era_3yr = contract.era_3yr
+
+                # Recent performance stats
+                recent_war_3yr = contract.recent_war_3yr
+                recent_wrc_plus_3yr = contract.recent_wrc_plus_3yr
+                recent_era_3yr = contract.recent_era_3yr
+
         return PredictionResponse(
             player_name=request.name,
             position=request.position,
@@ -103,6 +120,12 @@ async def create_prediction(request: PredictionRequest, db: Session = Depends(ge
             predicted_length=result['predicted_length'],
             actual_aav=actual_aav,
             actual_length=actual_length,
+            signing_war_3yr=signing_war_3yr,
+            signing_wrc_plus_3yr=signing_wrc_plus_3yr,
+            signing_era_3yr=signing_era_3yr,
+            recent_war_3yr=recent_war_3yr,
+            recent_wrc_plus_3yr=recent_wrc_plus_3yr,
+            recent_era_3yr=recent_era_3yr,
             confidence_score=result['confidence_score'],
             comparables=result['comparables'],
             feature_importance=result['feature_importance'],

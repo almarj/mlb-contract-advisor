@@ -49,6 +49,19 @@ class Contract(Base):
     # Contract type flag
     is_extension = Column(Boolean, default=False, index=True)
 
+    # Recent performance stats (last 3 years from current date)
+    recent_war_3yr = Column(Float, nullable=True)
+    recent_wrc_plus_3yr = Column(Float, nullable=True)
+    recent_avg_3yr = Column(Float, nullable=True)
+    recent_obp_3yr = Column(Float, nullable=True)
+    recent_slg_3yr = Column(Float, nullable=True)
+    recent_hr_3yr = Column(Float, nullable=True)
+    recent_era_3yr = Column(Float, nullable=True)
+    recent_fip_3yr = Column(Float, nullable=True)
+    recent_k_9_3yr = Column(Float, nullable=True)
+    recent_bb_9_3yr = Column(Float, nullable=True)
+    recent_ip_3yr = Column(Float, nullable=True)
+
 
 class Player(Base):
     """Player lookup table for autocomplete."""

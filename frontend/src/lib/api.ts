@@ -46,6 +46,14 @@ export interface PredictionResponse {
   predicted_length: number;
   actual_aav: number | null;
   actual_length: number | null;
+  // Stats at time of signing (pre-signing 3yr averages)
+  signing_war_3yr: number | null;
+  signing_wrc_plus_3yr: number | null;
+  signing_era_3yr: number | null;
+  // Recent performance stats (last 3 years)
+  recent_war_3yr: number | null;
+  recent_wrc_plus_3yr: number | null;
+  recent_era_3yr: number | null;
   confidence_score: number;
   comparables: ComparablePlayer[];
   feature_importance: Record<string, number>;

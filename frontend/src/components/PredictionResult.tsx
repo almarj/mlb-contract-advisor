@@ -167,6 +167,94 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
         </Card>
       )}
 
+      {/* Performance Since Signing (only show if we have recent stats) */}
+      {prediction.actual_aav !== null && prediction.recent_war_3yr !== null && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Performance Since Signing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="text-center border-r">
+                <p className="text-sm font-medium text-muted-foreground mb-3">At Signing</p>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">WAR (3yr avg)</p>
+                    <p className="text-lg font-semibold">{prediction.signing_war_3yr?.toFixed(1) ?? 'N/A'}</p>
+                  </div>
+                  {prediction.signing_wrc_plus_3yr !== null && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">wRC+</p>
+                      <p className="text-lg font-semibold">{prediction.signing_wrc_plus_3yr?.toFixed(0)}</p>
+                    </div>
+                  )}
+                  {prediction.signing_era_3yr !== null && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">ERA</p>
+                      <p className="text-lg font-semibold">{prediction.signing_era_3yr?.toFixed(2)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-muted-foreground mb-3">Recent (2023-2025)</p>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">WAR (3yr avg)</p>
+                    <p className={`text-lg font-semibold ${
+                      prediction.recent_war_3yr !== null && prediction.signing_war_3yr !== null
+                        ? prediction.recent_war_3yr < prediction.signing_war_3yr * 0.5
+                          ? 'text-red-600'
+                          : prediction.recent_war_3yr > prediction.signing_war_3yr
+                            ? 'text-green-600'
+                            : ''
+                        : ''
+                    }`}>
+                      {prediction.recent_war_3yr?.toFixed(1) ?? 'N/A'}
+                    </p>
+                  </div>
+                  {prediction.recent_wrc_plus_3yr !== null && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">wRC+</p>
+                      <p className={`text-lg font-semibold ${
+                        prediction.recent_wrc_plus_3yr !== null && prediction.signing_wrc_plus_3yr !== null
+                          ? prediction.recent_wrc_plus_3yr < prediction.signing_wrc_plus_3yr * 0.7
+                            ? 'text-red-600'
+                            : prediction.recent_wrc_plus_3yr > prediction.signing_wrc_plus_3yr
+                              ? 'text-green-600'
+                              : ''
+                          : ''
+                      }`}>
+                        {prediction.recent_wrc_plus_3yr?.toFixed(0)}
+                      </p>
+                    </div>
+                  )}
+                  {prediction.recent_era_3yr !== null && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">ERA</p>
+                      <p className={`text-lg font-semibold ${
+                        prediction.recent_era_3yr !== null && prediction.signing_era_3yr !== null
+                          ? prediction.recent_era_3yr > prediction.signing_era_3yr * 1.5
+                            ? 'text-red-600'
+                            : prediction.recent_era_3yr < prediction.signing_era_3yr
+                              ? 'text-green-600'
+                              : ''
+                          : ''
+                      }`}>
+                        {prediction.recent_era_3yr?.toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground text-center mt-4 italic">
+              Compares stats at time of signing vs recent performance
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Assessment Summary */}
       <Card>
         <CardHeader className="pb-3">
