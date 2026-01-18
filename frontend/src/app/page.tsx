@@ -120,9 +120,9 @@ export default function Home() {
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-primary font-bold text-lg">1</span>
                 </div>
-                <h3 className="font-medium mb-2">Enter Stats</h3>
+                <h3 className="font-medium mb-2">Enter Name</h3>
                 <p className="text-sm text-muted-foreground">
-                  Input the player&apos;s 3-year average statistics including WAR, age, and position
+                  Search for any MLB player and their stats will auto-fill from our database
                 </p>
               </div>
               <div className="text-center">
