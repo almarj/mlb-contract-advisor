@@ -201,9 +201,44 @@ Frontend available at: http://localhost:3000
 
 ### Features
 - Player search with autocomplete (auto-fills stats from database)
+- **Prospect support**: Search for players without contracts (e.g., Kyle Tucker)
 - Contract prediction form with position-specific fields
 - Results display with AAV range, comparables, and feature importance
 - Historical contracts browser with filtering
+
+## Prospect Feature
+
+The app supports two types of players in search:
+
+### Signed Players
+- Players with historical contracts in the Spotrac database
+- Stats come from `master_contract_dataset.csv` (contract-time stats)
+- Used for model training and comparables
+
+### Prospects (Unsigned Players)
+- Players with FanGraphs data but no free agent contract yet
+- Stats calculated as 3-year averages from most recent seasons
+- Seeded from `fangraphs_batting_2015-2025.csv` and `fangraphs_pitching_2015-2025.csv`
+- Examples: Kyle Tucker, upcoming free agents
+- Displayed with "Prospect" badge in search results
+
+### Database Schema
+
+The `Player` table has a `has_contract` boolean flag:
+- `True` = signed player (stats from Contract table)
+- `False` = prospect (stats stored directly on Player table)
+
+### Updating Prospect Data
+
+To refresh prospect stats after collecting new FanGraphs data:
+
+```bash
+# 1. Collect latest FanGraphs data
+python Data/collect_all_data_expanded.py
+
+# 2. Re-seed the database (includes both signed players and prospects)
+cd backend && python seed_database.py
+```
 
 ## Deployment (Railway)
 

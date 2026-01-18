@@ -68,6 +68,7 @@ class ComparablePlayer(BaseModel):
     length: int
     war_3yr: float
     similarity_score: float = Field(..., ge=0, le=100)
+    is_extension: bool = Field(False, description="True if this was a pre-FA extension")
 
 
 class PredictionResponse(BaseModel):
@@ -80,6 +81,10 @@ class PredictionResponse(BaseModel):
     predicted_aav_low: float = Field(..., description="Low estimate (AAV - MAE)")
     predicted_aav_high: float = Field(..., description="High estimate (AAV + MAE)")
     predicted_length: float = Field(..., description="Predicted contract length in years")
+
+    # Actual contract (for signed players only)
+    actual_aav: Optional[float] = Field(None, description="Actual AAV if player has signed contract")
+    actual_length: Optional[int] = Field(None, description="Actual contract length if signed")
 
     # Confidence
     confidence_score: float = Field(..., ge=0, le=100, description="Model confidence %")
@@ -103,8 +108,14 @@ class PlayerStats(BaseModel):
     # Basic info
     name: str
     position: str
-    age_at_signing: int
-    year_signed: int
+
+    # For signed players (from Contract table)
+    age_at_signing: Optional[int] = None
+    year_signed: Optional[int] = None
+
+    # For prospects (from Player table)
+    current_age: Optional[int] = None
+    last_season: Optional[int] = None
 
     # Core stats
     war_3yr: Optional[float] = None
@@ -140,6 +151,7 @@ class PlayerSearchResult(BaseModel):
     position: str
     team: Optional[str] = None
     is_pitcher: bool = False
+    has_contract: bool = False
     stats: Optional[PlayerStats] = None
 
 
@@ -164,6 +176,7 @@ class ContractRecord(BaseModel):
     total_value: float
     length: int
     war_3yr: Optional[float] = None
+    is_extension: bool = False
 
     class Config:
         from_attributes = True

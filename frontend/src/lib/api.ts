@@ -34,6 +34,7 @@ export interface ComparablePlayer {
   length: number;
   war_3yr: number;
   similarity_score: number;
+  is_extension: boolean;
 }
 
 export interface PredictionResponse {
@@ -43,6 +44,8 @@ export interface PredictionResponse {
   predicted_aav_low: number;
   predicted_aav_high: number;
   predicted_length: number;
+  actual_aav: number | null;
+  actual_length: number | null;
   confidence_score: number;
   comparables: ComparablePlayer[];
   feature_importance: Record<string, number>;
@@ -52,8 +55,13 @@ export interface PredictionResponse {
 export interface PlayerStats {
   name: string;
   position: string;
-  age_at_signing: number;
-  year_signed: number;
+  // For signed players (from Contract table)
+  age_at_signing: number | null;
+  year_signed: number | null;
+  // For prospects (from Player table)
+  current_age: number | null;
+  last_season: number | null;
+  // Stats
   war_3yr: number | null;
   wrc_plus_3yr: number | null;
   avg_3yr: number | null;
@@ -77,6 +85,7 @@ export interface PlayerSearchResult {
   position: string;
   team: string | null;
   is_pitcher: boolean;
+  has_contract: boolean;
   stats: PlayerStats | null;
 }
 

@@ -16,21 +16,32 @@ router = APIRouter(prefix="/players", tags=["Players"])
 async def search_players(
     q: str = Query(..., min_length=2, description="Search query (min 2 characters)"),
     limit: int = Query(10, ge=1, le=50, description="Max results to return"),
-    include_stats: bool = Query(True, description="Include player stats from most recent contract"),
+    include_stats: bool = Query(True, description="Include player stats"),
+    player_type: Optional[str] = Query(None, description="Filter: 'signed', 'prospect', or None for both"),
     db: Session = Depends(get_db)
 ):
     """
     Search for players by name with autocomplete.
 
+    Returns both signed players (historical contracts) and prospects (FanGraphs data).
+
     - Triggers after 2 characters
-    - Returns player name, position, team
-    - Optionally includes 3-year average stats from most recent contract
+    - Returns player name, position, team, has_contract flag
+    - Optionally includes 3-year average stats
+    - Signed players first, then prospects
     - Response time target: < 300ms
     """
-    # Search by name (case-insensitive)
-    query = db.query(Player).filter(
-        Player.name.ilike(f"%{q}%")
-    ).limit(limit)
+    # Build query
+    query = db.query(Player).filter(Player.name.ilike(f"%{q}%"))
+
+    # Optional filter by player type
+    if player_type == "signed":
+        query = query.filter(Player.has_contract == True)
+    elif player_type == "prospect":
+        query = query.filter(Player.has_contract == False)
+
+    # Order: signed players first, then by name
+    query = query.order_by(desc(Player.has_contract), Player.name).limit(limit)
 
     players = query.all()
 
@@ -39,32 +50,52 @@ async def search_players(
         stats = None
 
         if include_stats:
-            # Get the most recent contract for this player
-            contract = db.query(Contract).filter(
-                Contract.player_name == p.name
-            ).order_by(desc(Contract.year_signed)).first()
+            if p.has_contract:
+                # Signed player: get stats from most recent Contract
+                contract = db.query(Contract).filter(
+                    Contract.player_name == p.name
+                ).order_by(desc(Contract.year_signed)).first()
 
-            if contract:
+                if contract:
+                    stats = PlayerStats(
+                        name=contract.player_name,
+                        position=contract.position,
+                        age_at_signing=contract.age_at_signing,
+                        year_signed=contract.year_signed,
+                        war_3yr=contract.war_3yr,
+                        wrc_plus_3yr=contract.wrc_plus_3yr,
+                        avg_3yr=contract.avg_3yr,
+                        obp_3yr=contract.obp_3yr,
+                        slg_3yr=contract.slg_3yr,
+                        hr_3yr=contract.hr_3yr,
+                        era_3yr=contract.era_3yr,
+                        fip_3yr=contract.fip_3yr,
+                        k_9_3yr=contract.k_9_3yr,
+                        bb_9_3yr=contract.bb_9_3yr,
+                        ip_3yr=contract.ip_3yr,
+                        avg_exit_velo=contract.avg_exit_velo,
+                        barrel_rate=contract.barrel_rate,
+                        max_exit_velo=contract.max_exit_velo,
+                        hard_hit_pct=contract.hard_hit_pct,
+                    )
+            else:
+                # Prospect: get stats directly from Player table
                 stats = PlayerStats(
-                    name=contract.player_name,
-                    position=contract.position,
-                    age_at_signing=contract.age_at_signing,
-                    year_signed=contract.year_signed,
-                    war_3yr=contract.war_3yr,
-                    wrc_plus_3yr=contract.wrc_plus_3yr,
-                    avg_3yr=contract.avg_3yr,
-                    obp_3yr=contract.obp_3yr,
-                    slg_3yr=contract.slg_3yr,
-                    hr_3yr=contract.hr_3yr,
-                    era_3yr=contract.era_3yr,
-                    fip_3yr=contract.fip_3yr,
-                    k_9_3yr=contract.k_9_3yr,
-                    bb_9_3yr=contract.bb_9_3yr,
-                    ip_3yr=contract.ip_3yr,
-                    avg_exit_velo=contract.avg_exit_velo,
-                    barrel_rate=contract.barrel_rate,
-                    max_exit_velo=contract.max_exit_velo,
-                    hard_hit_pct=contract.hard_hit_pct,
+                    name=p.name,
+                    position=p.position,
+                    current_age=p.current_age,
+                    last_season=p.last_season,
+                    war_3yr=p.war_3yr,
+                    wrc_plus_3yr=p.wrc_plus_3yr,
+                    avg_3yr=p.avg_3yr,
+                    obp_3yr=p.obp_3yr,
+                    slg_3yr=p.slg_3yr,
+                    hr_3yr=p.hr_3yr,
+                    era_3yr=p.era_3yr,
+                    fip_3yr=p.fip_3yr,
+                    k_9_3yr=p.k_9_3yr,
+                    bb_9_3yr=p.bb_9_3yr,
+                    ip_3yr=p.ip_3yr,
                 )
 
         results.append(PlayerSearchResult(
@@ -73,6 +104,7 @@ async def search_players(
             position=p.position,
             team=p.team,
             is_pitcher=p.is_pitcher,
+            has_contract=p.has_contract,
             stats=stats
         ))
 

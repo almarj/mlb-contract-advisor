@@ -19,26 +19,89 @@ interface PredictionResultProps {
 
 export default function PredictionResult({ prediction, showAdvanced }: PredictionResultProps) {
   const getAssessment = () => {
-    // Simple assessment based on comparable contracts
-    const avgComparableAAV = prediction.comparables.length > 0
-      ? prediction.comparables.reduce((sum, c) => sum + c.aav, 0) / prediction.comparables.length
-      : prediction.predicted_aav;
+    // If player has an actual contract, compare predicted vs actual
+    if (prediction.actual_aav !== null) {
+      const diff = prediction.actual_aav - prediction.predicted_aav;
+      const pctDiff = (diff / prediction.predicted_aav) * 100;
 
-    const diff = prediction.predicted_aav - avgComparableAAV;
-    const pctDiff = (diff / avgComparableAAV) * 100;
-
-    if (Math.abs(pctDiff) < 10) {
-      return { text: 'Fair Value', variant: 'success' as const };
-    } else if (pctDiff > 10) {
-      return { text: 'Premium Value', variant: 'warning' as const };
-    } else {
-      return { text: 'Below Market', variant: 'info' as const };
+      if (Math.abs(pctDiff) < 15) {
+        return { text: 'Fair Value', variant: 'success' as const, hasActual: true };
+      } else if (pctDiff > 15) {
+        return { text: 'Overpaid', variant: 'warning' as const, hasActual: true };
+      } else {
+        return { text: 'Underpaid', variant: 'info' as const, hasActual: true };
+      }
     }
+
+    // For free agents (no actual contract), show "Projected" instead
+    return { text: 'Projected', variant: 'neutral' as const, hasActual: false };
   };
 
   const assessment = getAssessment();
 
-  const getBadgeClass = (variant: 'success' | 'warning' | 'info') => {
+  // Generate natural language assessment summary
+  const generateSummary = (): string[] => {
+    const sentences: string[] = [];
+    const playerName = prediction.player_name;
+    const predictedAAV = formatAAV(prediction.predicted_aav);
+    const predictedLength = prediction.predicted_length;
+
+    // Get top 2 features for explanation
+    const topFeatures = Object.entries(prediction.feature_importance)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 2)
+      .map(([name]) => formatFeatureName(name));
+
+    // Count extensions in comparables
+    const extensionCount = prediction.comparables.filter(c => c.is_extension).length;
+    const totalComps = prediction.comparables.length;
+
+    if (prediction.actual_aav !== null) {
+      // Signed player - compare predicted vs actual
+      const actualAAV = formatAAV(prediction.actual_aav);
+      const diff = prediction.actual_aav - prediction.predicted_aav;
+      const pctDiff = Math.abs((diff / prediction.predicted_aav) * 100);
+
+      if (assessment.text === 'Fair Value') {
+        sentences.push(
+          `${playerName}'s ${actualAAV} AAV is within ${pctDiff.toFixed(0)}% of our model's predicted ${predictedAAV}, suggesting the contract reflects fair market value based on performance.`
+        );
+      } else if (assessment.text === 'Overpaid') {
+        sentences.push(
+          `${playerName}'s ${actualAAV} AAV is ${pctDiff.toFixed(0)}% above our model's predicted ${predictedAAV}. This may reflect factors like marketability, team needs, or bidding competition not captured in performance metrics.`
+        );
+      } else {
+        sentences.push(
+          `${playerName}'s ${actualAAV} AAV is ${pctDiff.toFixed(0)}% below our model's predicted ${predictedAAV}, suggesting the player may have been undervalued or accepted a team-friendly deal.`
+        );
+      }
+    } else {
+      // Prospect/free agent - projection only
+      sentences.push(
+        `Based on recent performance, ${playerName} projects to a ${predictedLength}-year contract worth approximately ${predictedAAV} per year on the open market.`
+      );
+    }
+
+    // Add feature explanation
+    if (topFeatures.length >= 2) {
+      sentences.push(
+        `This prediction is primarily driven by ${topFeatures[0]} and ${topFeatures[1]}.`
+      );
+    }
+
+    // Add extension caveat if relevant
+    if (extensionCount > 0) {
+      sentences.push(
+        `Note: ${extensionCount} of ${totalComps} comparable contracts are pre-free agency extensions, which typically have below-market AAVs.`
+      );
+    }
+
+    return sentences;
+  };
+
+  const summaryParagraphs = generateSummary();
+
+  const getBadgeClass = (variant: 'success' | 'warning' | 'info' | 'neutral') => {
     switch (variant) {
       case 'success':
         return 'bg-green-100 text-green-700 hover:bg-green-100';
@@ -46,6 +109,8 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
         return 'bg-orange-100 text-orange-700 hover:bg-orange-100';
       case 'info':
         return 'bg-blue-100 text-blue-700 hover:bg-blue-100';
+      case 'neutral':
+        return 'bg-gray-100 text-gray-700 hover:bg-gray-100';
     }
   };
 
@@ -65,6 +130,58 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
             <Badge className={getBadgeClass(assessment.variant)}>
               {assessment.text}
             </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Actual Contract Comparison (if player has signed) */}
+      {prediction.actual_aav !== null && (
+        <Card className="border-2 border-dashed">
+          <CardContent className="py-6">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">Model Predicted</p>
+                <p className="text-2xl font-bold font-mono text-primary">
+                  {formatAAV(prediction.predicted_aav)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {prediction.predicted_length} year{prediction.predicted_length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">Actual Contract</p>
+                <p className="text-2xl font-bold font-mono">
+                  {formatAAV(prediction.actual_aav)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {prediction.actual_length} year{prediction.actual_length !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground text-center mt-4">
+              Difference: {formatAAV(Math.abs(prediction.actual_aav - prediction.predicted_aav))}
+              {' '}({prediction.actual_aav > prediction.predicted_aav ? '+' : '-'}
+              {Math.abs(((prediction.actual_aav - prediction.predicted_aav) / prediction.predicted_aav) * 100).toFixed(0)}%)
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Assessment Summary */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Assessment Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {summaryParagraphs.map((paragraph, idx) => (
+              <p key={idx} className={idx === summaryParagraphs.length - 1 && paragraph.startsWith('Note:')
+                ? 'text-sm text-muted-foreground italic'
+                : 'text-sm text-foreground'
+              }>
+                {paragraph}
+              </p>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -111,8 +228,17 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
               </TableHeader>
               <TableBody>
                 {prediction.comparables.map((comp, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell className="font-medium">{comp.name}</TableCell>
+                  <TableRow key={idx} className={comp.is_extension ? 'opacity-70' : ''}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {comp.name}
+                        {comp.is_extension && (
+                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                            Extension
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>{comp.year_signed}</TableCell>
                     <TableCell className="text-right font-mono">{formatAAV(comp.aav)}</TableCell>
                     <TableCell className="text-right">{comp.length}</TableCell>

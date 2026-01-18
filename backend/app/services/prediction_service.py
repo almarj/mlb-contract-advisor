@@ -48,9 +48,15 @@ class PredictionService:
                     self.metrics[model_type] = joblib.load(metrics_path)
 
             # Load contracts for comparables
-            contracts_path = MASTER_DATA_DIR / "master_contract_dataset.csv"
-            if contracts_path.exists():
-                self.contracts_df = pd.read_csv(contracts_path)
+            # Try multiple paths for the master dataset
+            possible_paths = [
+                MASTER_DATA_DIR / "master_contract_dataset.csv",  # backend folder
+                MASTER_DATA_DIR.parent / "Data" / "Master Data" / "master_contract_dataset.csv",  # project root
+            ]
+            for contracts_path in possible_paths:
+                if contracts_path.exists():
+                    self.contracts_df = pd.read_csv(contracts_path)
+                    break
 
             self._loaded = len(self.models) >= 4
             return self._loaded
@@ -255,15 +261,21 @@ class PredictionService:
 
         comparables = []
         for _, row in df.iterrows():
+            age = int(row['age_at_signing'])
+            length = int(row['length'])
+            # Pre-FA extension: young player (<=25) with long contract (>=6 years)
+            is_ext = age <= 25 and length >= 6
+
             comparables.append(ComparablePlayer(
                 name=row['player_name'],
                 position=row['position'],
                 year_signed=int(row['year_signed']),
-                age_at_signing=int(row['age_at_signing']),
+                age_at_signing=age,
                 aav=row['AAV'],
-                length=int(row['length']),
+                length=length,
                 war_3yr=row.get('WAR_3yr', 0) or 0,
                 similarity_score=round(row['similarity'], 1),
+                is_extension=is_ext,
             ))
 
         return comparables

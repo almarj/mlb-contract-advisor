@@ -39,6 +39,7 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
   const [showDropdown, setShowDropdown] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const [isProspect, setIsProspect] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isPitcherPosition = isPitcher(formData.position);
@@ -82,18 +83,29 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
     setSearchQuery(player.name);
     setSelectedPlayer(player.name);
     setShowDropdown(false);
+    setIsProspect(!player.has_contract);
 
     // Auto-fill form with player stats
     if (player.stats) {
       const stats = player.stats;
-      // Calculate estimated current age (year_signed was when contract was signed)
       const currentYear = new Date().getFullYear();
-      const estimatedAge = stats.age_at_signing + (currentYear - stats.year_signed);
+
+      // Calculate age differently for signed vs prospect players
+      let estimatedAge: number;
+      if (player.has_contract && stats.age_at_signing && stats.year_signed) {
+        // Signed player: calculate current age from contract signing
+        estimatedAge = stats.age_at_signing + (currentYear - stats.year_signed);
+      } else if (stats.current_age && stats.last_season) {
+        // Prospect: use current age, adjusted for year
+        estimatedAge = stats.current_age + (currentYear - stats.last_season);
+      } else {
+        estimatedAge = 28; // Default
+      }
 
       setFormData({
         name: player.name,
         position: stats.position,
-        age: Math.min(estimatedAge, 45), // Cap at 45
+        age: Math.min(Math.max(estimatedAge, 18), 45), // Clamp between 18-45
         war_3yr: stats.war_3yr ?? 3.0,
         wrc_plus_3yr: stats.wrc_plus_3yr ?? undefined,
         avg_3yr: stats.avg_3yr ?? undefined,
@@ -203,7 +215,14 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
                   className="w-full px-3 py-2 text-left hover:bg-accent flex items-center justify-between"
                   onClick={() => handlePlayerSelect(player)}
                 >
-                  <span className="font-medium">{player.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{player.name}</span>
+                    {!player.has_contract && (
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                        Free Agent
+                      </Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-xs">
                       {player.position}
@@ -219,7 +238,11 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
             </div>
           )}
           {selectedPlayer && (
-            <p className="text-xs text-green-600 mt-1">Stats auto-filled from database</p>
+            <p className={`text-xs mt-1 ${isProspect ? 'text-blue-600' : 'text-green-600'}`}>
+              {isProspect
+                ? 'Stats auto-filled from FanGraphs (free agent - no contract yet)'
+                : 'Stats auto-filled from contract database'}
+            </p>
           )}
         </div>
 

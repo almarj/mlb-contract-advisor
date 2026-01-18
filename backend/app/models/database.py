@@ -46,6 +46,9 @@ class Contract(Base):
     max_exit_velo = Column(Float, nullable=True)
     hard_hit_pct = Column(Float, nullable=True)
 
+    # Contract type flag
+    is_extension = Column(Boolean, default=False, index=True)
+
 
 class Player(Base):
     """Player lookup table for autocomplete."""
@@ -56,6 +59,26 @@ class Player(Base):
     position = Column(String)
     team = Column(String, nullable=True)
     is_pitcher = Column(Boolean, default=False)
+
+    # Distinguish signed vs unsigned (prospect) players
+    has_contract = Column(Boolean, default=False, index=True)
+    current_age = Column(Integer, nullable=True)
+    last_season = Column(Integer, nullable=True)
+
+    # 3-year average stats (for prospects without Contract records)
+    war_3yr = Column(Float, nullable=True)
+    wrc_plus_3yr = Column(Float, nullable=True)
+    avg_3yr = Column(Float, nullable=True)
+    obp_3yr = Column(Float, nullable=True)
+    slg_3yr = Column(Float, nullable=True)
+    hr_3yr = Column(Float, nullable=True)
+
+    # Pitcher stats
+    era_3yr = Column(Float, nullable=True)
+    fip_3yr = Column(Float, nullable=True)
+    k_9_3yr = Column(Float, nullable=True)
+    bb_9_3yr = Column(Float, nullable=True)
+    ip_3yr = Column(Float, nullable=True)
 
 
 def get_db():
