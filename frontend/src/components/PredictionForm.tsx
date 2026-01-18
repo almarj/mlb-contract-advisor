@@ -219,7 +219,7 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
                     <span className="font-medium">{player.name}</span>
                     {!player.has_contract && (
                       <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                        Free Agent
+                        Pre-FA
                       </Badge>
                     )}
                   </div>
@@ -240,7 +240,7 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
           {selectedPlayer && (
             <p className={`text-xs mt-1 ${isProspect ? 'text-blue-600' : 'text-green-600'}`}>
               {isProspect
-                ? 'Stats auto-filled from FanGraphs (free agent - no contract yet)'
+                ? 'Stats auto-filled from FanGraphs (pre-FA player)'
                 : 'Stats auto-filled from contract database'}
             </p>
           )}

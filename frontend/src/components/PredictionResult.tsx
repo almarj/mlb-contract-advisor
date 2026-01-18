@@ -119,7 +119,7 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
       {/* Main Prediction */}
       <Card className="bg-muted/50">
         <CardContent className="text-center py-8">
-          <p className="text-sm text-muted-foreground mb-2">Predicted Contract Value</p>
+          <p className="text-sm text-muted-foreground mb-2">Predicted Contract Value (AAV)</p>
           <p className="text-5xl font-bold text-primary font-mono">
             {formatAAV(prediction.predicted_aav)}
           </p>
