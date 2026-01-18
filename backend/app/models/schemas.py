@@ -102,8 +102,11 @@ class PredictionResponse(BaseModel):
     # Confidence
     confidence_score: float = Field(..., ge=0, le=100, description="Model confidence %")
 
-    # Comparables
+    # Comparables (based on stats at time of signing)
     comparables: List[ComparablePlayer] = Field(default_factory=list)
+
+    # Comparables based on recent performance
+    comparables_recent: List[ComparablePlayer] = Field(default_factory=list)
 
     # Feature importance (top 5)
     feature_importance: dict = Field(default_factory=dict)

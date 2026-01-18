@@ -347,10 +347,11 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
         </Card>
       </div>
 
-      {/* Comparable Players */}
+      {/* Comparable Players (At Signing) */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Comparable Contracts</CardTitle>
+          <CardTitle className="text-lg">Comparable Contracts (At Signing)</CardTitle>
+          <p className="text-sm text-muted-foreground">Players with similar stats when they signed</p>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -401,6 +402,64 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
           </div>
         </CardContent>
       </Card>
+
+      {/* Comparable Players (Based on Recent Performance) */}
+      {prediction.comparables_recent && prediction.comparables_recent.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Comparable Contracts (Recent Performance)</CardTitle>
+            <p className="text-sm text-muted-foreground">Players with similar stats to recent 2023-2025 performance</p>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Player</TableHead>
+                    <TableHead>Year</TableHead>
+                    <TableHead className="text-right">AAV</TableHead>
+                    <TableHead className="text-right">Years</TableHead>
+                    <TableHead className="text-right">WAR</TableHead>
+                    <TableHead className="text-right">Match</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {prediction.comparables_recent.map((comp, idx) => (
+                    <TableRow key={idx} className={comp.is_extension ? 'opacity-70' : ''}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {comp.name}
+                          {comp.is_extension && (
+                            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                              Extension
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{comp.year_signed}</TableCell>
+                      <TableCell className="text-right font-mono">{formatAAV(comp.aav)}</TableCell>
+                      <TableCell className="text-right">{comp.length}</TableCell>
+                      <TableCell className="text-right">{comp.war_3yr.toFixed(1)}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge
+                          variant="outline"
+                          className={
+                            comp.similarity_score >= 90 ? 'bg-green-100 text-green-700 border-green-200' :
+                            comp.similarity_score >= 80 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                            'bg-gray-100 text-gray-700 border-gray-200'
+                          }
+                        >
+                          {comp.similarity_score.toFixed(0)}%
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Feature Importance (Advanced Mode) */}
       {showAdvanced && Object.keys(prediction.feature_importance).length > 0 && (

@@ -58,6 +58,7 @@ export interface PredictionResponse {
   predicted_aav_recent: number | null;
   confidence_score: number;
   comparables: ComparablePlayer[];
+  comparables_recent: ComparablePlayer[];
   feature_importance: Record<string, number>;
   model_accuracy: number;
 }

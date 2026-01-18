@@ -1,15 +1,120 @@
 """
 Prediction API endpoints.
 """
+from typing import List
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
-from app.models.schemas import PredictionRequest, PredictionResponse
+from app.models.schemas import PredictionRequest, PredictionResponse, ComparablePlayer
 from app.models.database import get_db, Contract
 from app.services.prediction_service import prediction_service
 
 router = APIRouter(prefix="/predictions", tags=["Predictions"])
+
+# Position groupings for similarity matching
+POSITION_GROUPS = {
+    'SP': 'SP', 'RP': 'RP', 'CL': 'RP', 'P': 'SP',
+    'C': 'C', '1B': '1B', '2B': '2B', '3B': '3B', 'SS': 'SS',
+    'LF': 'OF', 'CF': 'OF', 'RF': 'OF', 'OF': 'OF', 'DH': 'DH',
+}
+
+PITCHER_POSITIONS = ['SP', 'RP', 'P', 'CL']
+
+
+def find_comparables_by_recent_performance(
+    db: Session,
+    target_recent_war: float,
+    position: str,
+    current_age: int,
+    n: int = 5
+) -> List[ComparablePlayer]:
+    """
+    Find comparable players based on their RECENT performance (2023-2025 stats).
+
+    This compares the target player's recent WAR against other players' recent WAR,
+    showing who is performing at a similar level RIGHT NOW.
+    """
+    is_pitcher = position.upper() in PITCHER_POSITIONS
+
+    # Get all contracts with recent stats
+    contracts = db.query(Contract).filter(
+        Contract.recent_war_3yr.isnot(None)
+    ).all()
+
+    if not contracts:
+        return []
+
+    # Filter to same player type (pitcher vs batter)
+    if is_pitcher:
+        contracts = [c for c in contracts if c.position in PITCHER_POSITIONS]
+    else:
+        contracts = [c for c in contracts if c.position not in PITCHER_POSITIONS]
+
+    if not contracts:
+        return []
+
+    # Calculate similarity scores based on RECENT performance
+    # Weight: 40% position, 35% recent WAR, 15% age, 10% recency of contract
+    scored_contracts = []
+    pos_group = POSITION_GROUPS.get(position.upper(), 'OF')
+
+    # Get max values for normalization
+    war_diffs = [abs(c.recent_war_3yr - target_recent_war) for c in contracts]
+    max_war_diff = max(war_diffs) if max(war_diffs) > 0 else 1
+
+    age_diffs = [abs(c.age_at_signing - current_age) for c in contracts]
+    max_age_diff = max(age_diffs) if max(age_diffs) > 0 else 1
+
+    year_diffs = [2026 - c.year_signed for c in contracts]
+    max_year_diff = max(year_diffs) if max(year_diffs) > 0 else 1
+
+    for contract in contracts:
+        similarity = 0.0
+
+        # Position similarity (40%)
+        contract_pos_group = POSITION_GROUPS.get(contract.position, 'OF')
+        if contract_pos_group == pos_group:
+            similarity += 40
+
+        # Recent WAR similarity (35%) - comparing recent performance to recent performance
+        war_diff = abs(contract.recent_war_3yr - target_recent_war)
+        similarity += (1 - war_diff / max_war_diff) * 35
+
+        # Age similarity (15%)
+        age_diff = abs(contract.age_at_signing - current_age)
+        similarity += (1 - age_diff / max_age_diff) * 15
+
+        # Recency (10%)
+        year_diff = 2026 - contract.year_signed
+        similarity += (1 - year_diff / max_year_diff) * 10
+
+        scored_contracts.append((contract, similarity))
+
+    # Sort by similarity and take top n
+    scored_contracts.sort(key=lambda x: -x[1])
+    top_contracts = scored_contracts[:n]
+
+    comparables = []
+    for contract, similarity in top_contracts:
+        age = contract.age_at_signing
+        length = contract.length
+        # Pre-FA extension: young player (<=25) with long contract (>=6 years)
+        is_ext = age <= 25 and length >= 6
+
+        comparables.append(ComparablePlayer(
+            name=contract.player_name,
+            position=contract.position,
+            year_signed=contract.year_signed,
+            age_at_signing=age,
+            aav=contract.aav,
+            length=length,
+            war_3yr=contract.recent_war_3yr,  # Show RECENT WAR, not at-signing WAR
+            similarity_score=round(similarity, 1),
+            is_extension=is_ext,
+        ))
+
+    return comparables
 
 
 def normalize_name(name: str) -> str:
@@ -113,6 +218,7 @@ async def create_prediction(request: PredictionRequest, db: Session = Depends(ge
 
         # Calculate predicted AAV based on recent performance (if available)
         predicted_aav_recent = None
+        comparables_recent = []
         if contract and contract.recent_war_3yr is not None:
             # Build a request with recent stats to get model prediction
             is_pitcher = prediction_service.is_pitcher(request.position)
@@ -143,6 +249,15 @@ async def create_prediction(request: PredictionRequest, db: Session = Depends(ge
             recent_result = prediction_service.predict(recent_request)
             predicted_aav_recent = recent_result['predicted_aav'] * 1_000_000
 
+            # Find comparables based on RECENT performance (comparing recent WAR to recent WAR)
+            comparables_recent = find_comparables_by_recent_performance(
+                db=db,
+                target_recent_war=contract.recent_war_3yr,
+                position=request.position,
+                current_age=request.age,
+                n=5
+            )
+
         return PredictionResponse(
             player_name=request.name,
             position=request.position,
@@ -161,6 +276,7 @@ async def create_prediction(request: PredictionRequest, db: Session = Depends(ge
             predicted_aav_recent=predicted_aav_recent,
             confidence_score=result['confidence_score'],
             comparables=result['comparables'],
+            comparables_recent=comparables_recent,
             feature_importance=result['feature_importance'],
             model_accuracy=result['model_accuracy'],
         )

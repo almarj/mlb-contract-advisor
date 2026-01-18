@@ -47,6 +47,44 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* How It Works Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="text-center">How It Works</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-primary font-bold text-lg">1</span>
+                </div>
+                <h3 className="font-medium mb-2">Enter Name</h3>
+                <p className="text-sm text-muted-foreground">
+                  Search for any MLB player and their stats will auto-fill from our database
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-primary font-bold text-lg">2</span>
+                </div>
+                <h3 className="font-medium mb-2">AI Analysis</h3>
+                <p className="text-sm text-muted-foreground">
+                  Our ML model analyzes 450+ historical contracts to find patterns
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-primary font-bold text-lg">3</span>
+                </div>
+                <h3 className="font-medium mb-2">Get Prediction</h3>
+                <p className="text-sm text-muted-foreground">
+                  Receive AAV estimate, contract length, and comparable players
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Mode Toggle */}
         <div className="flex justify-end mb-6">
           <label className="flex items-center gap-2 cursor-pointer">
@@ -108,44 +146,6 @@ export default function Home() {
             </CardContent>
           </Card>
         </div>
-
-        {/* How It Works Section */}
-        <Card className="mt-12">
-          <CardHeader>
-            <CardTitle className="text-center">How It Works</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-primary font-bold text-lg">1</span>
-                </div>
-                <h3 className="font-medium mb-2">Enter Name</h3>
-                <p className="text-sm text-muted-foreground">
-                  Search for any MLB player and their stats will auto-fill from our database
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-primary font-bold text-lg">2</span>
-                </div>
-                <h3 className="font-medium mb-2">AI Analysis</h3>
-                <p className="text-sm text-muted-foreground">
-                  Our ML model analyzes 450+ historical contracts to find patterns
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-primary font-bold text-lg">3</span>
-                </div>
-                <h3 className="font-medium mb-2">Get Prediction</h3>
-                <p className="text-sm text-muted-foreground">
-                  Receive AAV estimate, contract length, and comparable players
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Model Info */}
         <div className="mt-8 text-center text-sm text-muted-foreground">
