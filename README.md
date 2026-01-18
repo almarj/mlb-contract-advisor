@@ -8,6 +8,7 @@ AI-powered MLB contract prediction tool that estimates player contract values (A
 
 - **Contract Predictions** - Get AI-powered AAV and contract length predictions for any MLB player
 - **Free Agent Search** - Search any player with FanGraphs data, including upcoming free agents
+- **Statcast Integration** - Plate discipline metrics for batters, pitcher-specific Statcast percentiles
 - **Contract Assessment** - Fair Value / Overpaid / Underpaid ratings based on predicted vs actual AAV
 - **Assessment Summary** - Natural language explanations of predictions and contract evaluations
 - **Comparable Players** - Find similar historical contracts with extension flags for pre-FA deals
@@ -20,7 +21,13 @@ AI-powered MLB contract prediction tool that estimates player contract values (A
 | Metric | Batters | Pitchers |
 |--------|---------|----------|
 | Accuracy (within $5M) | ~74% | ~73% |
-| Key Features | WAR, HR, wRC+ | WAR, ERA, K/9 |
+| Key Features | WAR, HR, wRC+, Barrel% | WAR, ERA, K/9, xERA |
+
+### Statcast Metrics Used
+
+**Batters:** Exit velocity, barrel rate, hard hit %, chase rate, whiff rate (percentiles)
+
+**Pitchers:** FB velocity, FB spin, xERA, K%, BB%, Whiff%, Chase% (percentiles)
 
 ## Tech Stack
 
@@ -34,12 +41,12 @@ AI-powered MLB contract prediction tool that estimates player contract values (A
 **Backend**
 - FastAPI
 - SQLite database
-- scikit-learn (Random Forest models)
+- scikit-learn (Gradient Boosting models)
 - pandas/numpy for data processing
 
 **Data Sources**
 - FanGraphs (WAR, wRC+, ERA, FIP)
-- Baseball Savant (Statcast metrics)
+- Baseball Savant (Statcast percentile rankings)
 - Spotrac (contract data)
 
 ## Project Structure
