@@ -186,7 +186,7 @@ def get_3year_avg_stats(player_name, year_signed, stats_df, is_pitcher=False):
 print("\n[STEP 1] Loading Spotrac contract data...")
 
 try:
-    contracts = pd.read_csv('spotract_contracts_2015-2025.csv')
+    contracts = pd.read_csv('spotract_contracts_2015-2026.csv')
     print(f"Loaded {len(contracts)} contracts from Spotrac")
 
     contracts.columns = contracts.columns.str.strip()
@@ -227,7 +227,7 @@ try:
     print(f"Date range: {contracts['year_signed'].min()}-{contracts['year_signed'].max()}")
 
 except FileNotFoundError:
-    print("Error: spotract_contracts_2015-2025.csv not found")
+    print("Error: spotract_contracts_2015-2026.csv not found")
     exit()
 
 # ============================================================================
