@@ -92,11 +92,11 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
 
       // Calculate age differently for signed vs prospect players
       let estimatedAge: number;
-      if (player.has_contract && stats.age_at_signing && stats.year_signed) {
-        // Signed player: calculate current age from contract signing
-        estimatedAge = stats.age_at_signing + (currentYear - stats.year_signed);
+      if (player.has_contract && stats.age_at_signing) {
+        // Signed player: use their actual age at signing from the database
+        estimatedAge = stats.age_at_signing;
       } else if (stats.current_age && stats.last_season) {
-        // Prospect: use current age, adjusted for year
+        // Pre-FA player: calculate current age, adjusted for year
         estimatedAge = stats.current_age + (currentYear - stats.last_season);
       } else {
         estimatedAge = 28; // Default

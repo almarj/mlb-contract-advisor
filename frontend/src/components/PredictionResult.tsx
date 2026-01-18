@@ -24,9 +24,9 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
       const diff = prediction.actual_aav - prediction.predicted_aav;
       const pctDiff = (diff / prediction.predicted_aav) * 100;
 
-      if (Math.abs(pctDiff) < 15) {
+      if (Math.abs(pctDiff) < 10) {
         return { text: 'Fair Value', variant: 'success' as const, hasActual: true };
-      } else if (pctDiff > 15) {
+      } else if (pctDiff > 10) {
         return { text: 'Overpaid', variant: 'warning' as const, hasActual: true };
       } else {
         return { text: 'Underpaid', variant: 'info' as const, hasActual: true };
