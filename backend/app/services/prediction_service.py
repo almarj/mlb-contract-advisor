@@ -120,6 +120,8 @@ class PredictionService:
         feature_values['barrel_rate'] = request.barrel_rate or 8.0
         feature_values['max_exit_velo'] = request.max_exit_velo or 110.0
         feature_values['hard_hit_pct'] = request.hard_hit_pct or 40.0
+        feature_values['chase_rate'] = request.chase_rate or 50.0  # Percentile, 50 = average
+        feature_values['whiff_rate'] = request.whiff_rate or 50.0  # Percentile, 50 = average
 
         # Position one-hot encoding
         for pos in ['1B', '2B', '3B', 'C', 'DH', 'OF', 'SS']:
@@ -177,6 +179,15 @@ class PredictionService:
         feature_values['seasons_with_data'] = 3
         feature_values['year_signed'] = year
         feature_values['is_starter'] = 1 if request.position.upper() == 'SP' else 0
+
+        # Pitcher Statcast features (percentiles, 50 = average)
+        feature_values['fb_velocity'] = request.fb_velocity or 50.0
+        feature_values['fb_spin'] = request.fb_spin or 50.0
+        feature_values['xera'] = request.xera or 50.0
+        feature_values['k_percent'] = request.k_percent or 50.0
+        feature_values['bb_percent'] = request.bb_percent or 50.0
+        feature_values['whiff_percent_pitcher'] = request.whiff_percent_pitcher or 50.0
+        feature_values['chase_percent_pitcher'] = request.chase_percent_pitcher or 50.0
 
         # Create feature array
         X = np.array([[feature_values.get(f, 0) for f in features]])

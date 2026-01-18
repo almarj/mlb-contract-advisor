@@ -505,12 +505,28 @@ function formatFeatureName(name: string): string {
     'year_signed': 'Year',
     'barrel_rate': 'Barrel %',
     'avg_exit_velo': 'Exit Velo',
+    'max_exit_velo': 'Max Exit Velo',
+    'hard_hit_pct': 'Hard Hit %',
     'SLG_3yr': 'Slugging',
     'OBP_3yr': 'OBP',
+    'AVG_3yr': 'Batting Avg',
     'ERA_3yr': 'ERA',
     'FIP_3yr': 'FIP',
     'K_9_3yr': 'K/9',
+    'BB_9_3yr': 'BB/9',
     'IP_3yr': 'Innings',
+    // Plate discipline (batters)
+    'chase_rate': 'Chase Rate',
+    'whiff_rate': 'Whiff Rate',
+    // Pitcher Statcast
+    'fb_velocity': 'FB Velocity',
+    'fb_spin': 'FB Spin',
+    'xera': 'xERA',
+    'k_percent': 'K%',
+    'bb_percent': 'BB%',
+    'whiff_percent_pitcher': 'Whiff%',
+    'chase_percent_pitcher': 'Chase%',
+    'is_starter': 'Starter',
   };
   return nameMap[name] || name.replace(/_/g, ' ');
 }

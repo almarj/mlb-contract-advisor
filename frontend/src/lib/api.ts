@@ -23,6 +23,16 @@ export interface PredictionRequest {
   barrel_rate?: number;
   max_exit_velo?: number;
   hard_hit_pct?: number;
+  chase_rate?: number;
+  whiff_rate?: number;
+  // Pitcher Statcast metrics (percentiles 0-100)
+  fb_velocity?: number;
+  fb_spin?: number;
+  xera?: number;
+  k_percent?: number;
+  bb_percent?: number;
+  whiff_percent_pitcher?: number;
+  chase_percent_pitcher?: number;
 }
 
 export interface ComparablePlayer {
@@ -88,6 +98,16 @@ export interface PlayerStats {
   barrel_rate: number | null;
   max_exit_velo: number | null;
   hard_hit_pct: number | null;
+  chase_rate: number | null;
+  whiff_rate: number | null;
+  // Pitcher Statcast
+  fb_velocity: number | null;
+  fb_spin: number | null;
+  xera: number | null;
+  k_percent: number | null;
+  bb_percent: number | null;
+  whiff_percent_pitcher: number | null;
+  chase_percent_pitcher: number | null;
 }
 
 export interface PlayerSearchResult {

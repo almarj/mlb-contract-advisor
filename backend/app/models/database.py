@@ -46,6 +46,19 @@ class Contract(Base):
     max_exit_velo = Column(Float, nullable=True)
     hard_hit_pct = Column(Float, nullable=True)
 
+    # Plate discipline (percentiles 0-100, batters)
+    chase_rate = Column(Float, nullable=True)
+    whiff_rate = Column(Float, nullable=True)
+
+    # Pitcher Statcast (percentiles 0-100)
+    fb_velocity = Column(Float, nullable=True)  # Fastball velocity percentile
+    fb_spin = Column(Float, nullable=True)  # Fastball spin percentile
+    xera = Column(Float, nullable=True)  # Expected ERA percentile
+    k_percent = Column(Float, nullable=True)  # K% percentile
+    bb_percent = Column(Float, nullable=True)  # BB% percentile
+    whiff_percent_pitcher = Column(Float, nullable=True)  # Whiff% percentile (pitcher)
+    chase_percent_pitcher = Column(Float, nullable=True)  # Chase% induced percentile
+
     # Contract type flag
     is_extension = Column(Boolean, default=False, index=True)
 
@@ -92,6 +105,23 @@ class Player(Base):
     k_9_3yr = Column(Float, nullable=True)
     bb_9_3yr = Column(Float, nullable=True)
     ip_3yr = Column(Float, nullable=True)
+
+    # Batter Statcast
+    avg_exit_velo = Column(Float, nullable=True)
+    barrel_rate = Column(Float, nullable=True)
+    max_exit_velo = Column(Float, nullable=True)
+    hard_hit_pct = Column(Float, nullable=True)
+    chase_rate = Column(Float, nullable=True)  # Plate discipline percentile
+    whiff_rate = Column(Float, nullable=True)  # Plate discipline percentile
+
+    # Pitcher Statcast (percentiles 0-100)
+    fb_velocity = Column(Float, nullable=True)
+    fb_spin = Column(Float, nullable=True)
+    xera = Column(Float, nullable=True)
+    k_percent = Column(Float, nullable=True)
+    bb_percent = Column(Float, nullable=True)
+    whiff_percent_pitcher = Column(Float, nullable=True)
+    chase_percent_pitcher = Column(Float, nullable=True)
 
 
 def get_db():

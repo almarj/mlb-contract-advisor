@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 import unicodedata
 import re
-from pybaseball import cache, statcast_batter_exitvelo_barrels
+from pybaseball import cache, statcast_batter_exitvelo_barrels, statcast_batter_percentile_ranks, statcast_pitcher_percentile_ranks
 import os
 
 cache.enable()
@@ -276,6 +276,38 @@ for year in sorted(contract_years):
             print(f" Error: {e}")
 
 # ============================================================================
+# STEP 3b: Collect Plate Discipline Data (Chase Rate, Whiff Rate)
+# ============================================================================
+print("\n[STEP 3b] Collecting plate discipline data (chase/whiff rates)...")
+
+percentile_data = {}
+for year in sorted(contract_years):
+    stats_year = year - 1
+    if stats_year >= 2015 and stats_year not in percentile_data:
+        try:
+            print(f"  Collecting percentile ranks for {stats_year}...", end='')
+            percentile_data[stats_year] = statcast_batter_percentile_ranks(stats_year)
+            print(f" ({len(percentile_data[stats_year])} players)")
+        except Exception as e:
+            print(f" Error: {e}")
+
+# ============================================================================
+# STEP 3c: Collect Pitcher Statcast Data
+# ============================================================================
+print("\n[STEP 3c] Collecting pitcher Statcast data...")
+
+pitcher_percentile_data = {}
+for year in sorted(contract_years):
+    stats_year = year - 1
+    if stats_year >= 2015 and stats_year not in pitcher_percentile_data:
+        try:
+            print(f"  Collecting pitcher percentiles for {stats_year}...", end='')
+            pitcher_percentile_data[stats_year] = statcast_pitcher_percentile_ranks(stats_year)
+            print(f" ({len(pitcher_percentile_data[stats_year])} pitchers)")
+        except Exception as e:
+            print(f" Error: {e}")
+
+# ============================================================================
 # STEP 4: Merge Everything Together
 # ============================================================================
 print("\n[STEP 4] Merging all data sources...")
@@ -341,6 +373,74 @@ for idx, contract in contracts.iterrows():
                 'max_exit_velo': player_match.iloc[0]['max_hit_speed'],
                 'hard_hit_pct': player_match.iloc[0]['ev95percent']
             }
+
+    # Get plate discipline metrics (chase rate, whiff rate)
+    if not is_pitcher and stats_year >= 2015 and stats_year in percentile_data:
+        pct_data = percentile_data[stats_year]
+
+        # Match by player name
+        normalized_name = normalize_name(player_name)
+        first_name, last_name = get_name_parts(player_name)
+
+        pct_match = pct_data[
+            pct_data['player_name'].apply(
+                lambda x: last_name in normalize_name(str(x)) if pd.notna(x) else False
+            )
+        ]
+
+        if len(pct_match) > 1 and first_name:
+            pct_match = pct_match[
+                pct_match['player_name'].apply(
+                    lambda x: first_name in normalize_name(str(x)) if pd.notna(x) else False
+                )
+            ]
+
+        if len(pct_match) > 0:
+            row = pct_match.iloc[0]
+            # These are percentiles (0-100), store as-is
+            if 'chase_percent' in row and pd.notna(row['chase_percent']):
+                statcast_metrics['chase_rate'] = row['chase_percent']
+            if 'whiff_percent' in row and pd.notna(row['whiff_percent']):
+                statcast_metrics['whiff_rate'] = row['whiff_percent']
+
+    # Get pitcher Statcast metrics
+    if is_pitcher and stats_year >= 2015 and stats_year in pitcher_percentile_data:
+        pitcher_pct_data = pitcher_percentile_data[stats_year]
+
+        # Match by player name
+        normalized_name = normalize_name(player_name)
+        first_name, last_name = get_name_parts(player_name)
+
+        pitcher_match = pitcher_pct_data[
+            pitcher_pct_data['player_name'].apply(
+                lambda x: last_name in normalize_name(str(x)) if pd.notna(x) else False
+            )
+        ]
+
+        if len(pitcher_match) > 1 and first_name:
+            pitcher_match = pitcher_match[
+                pitcher_match['player_name'].apply(
+                    lambda x: first_name in normalize_name(str(x)) if pd.notna(x) else False
+                )
+            ]
+
+        if len(pitcher_match) > 0:
+            row = pitcher_match.iloc[0]
+            # These are percentiles (0-100), store as-is
+            if 'fb_velocity' in row and pd.notna(row['fb_velocity']):
+                statcast_metrics['fb_velocity'] = row['fb_velocity']
+            if 'fb_spin' in row and pd.notna(row['fb_spin']):
+                statcast_metrics['fb_spin'] = row['fb_spin']
+            if 'xera' in row and pd.notna(row['xera']):
+                statcast_metrics['xera'] = row['xera']
+            if 'k_percent' in row and pd.notna(row['k_percent']):
+                statcast_metrics['k_percent'] = row['k_percent']
+            if 'bb_percent' in row and pd.notna(row['bb_percent']):
+                statcast_metrics['bb_percent'] = row['bb_percent']
+            if 'whiff_percent' in row and pd.notna(row['whiff_percent']):
+                statcast_metrics['whiff_percent_pitcher'] = row['whiff_percent']
+            if 'chase_percent' in row and pd.notna(row['chase_percent']):
+                statcast_metrics['chase_percent_pitcher'] = row['chase_percent']
 
     # Combine everything
     master_row = {
@@ -410,7 +510,28 @@ print(f"  Max: ${master_df['AAV'].max():,.0f} ({master_df.loc[master_df['AAV'].i
 print(f"\nStatcast coverage:")
 if 'avg_exit_velo' in master_df.columns:
     has_statcast = master_df['avg_exit_velo'].notna().sum()
-    print(f"  {has_statcast}/{len(master_df)} contracts ({has_statcast/len(master_df)*100:.1f}%)")
+    print(f"  Exit velo/barrel: {has_statcast}/{len(master_df)} contracts ({has_statcast/len(master_df)*100:.1f}%)")
+
+print(f"\nPlate discipline coverage (batters):")
+if 'chase_rate' in master_df.columns:
+    has_chase = master_df['chase_rate'].notna().sum()
+    print(f"  Chase rate: {has_chase}/{len(master_df)} contracts ({has_chase/len(master_df)*100:.1f}%)")
+if 'whiff_rate' in master_df.columns:
+    has_whiff = master_df['whiff_rate'].notna().sum()
+    print(f"  Whiff rate: {has_whiff}/{len(master_df)} contracts ({has_whiff/len(master_df)*100:.1f}%)")
+
+# Pitcher Statcast coverage
+pitcher_contracts = master_df[master_df['position'].isin(['SP', 'RP', 'P', 'CL'])]
+print(f"\nPitcher Statcast coverage ({len(pitcher_contracts)} pitcher contracts):")
+if 'fb_velocity' in master_df.columns:
+    has_fb_velo = pitcher_contracts['fb_velocity'].notna().sum()
+    print(f"  FB Velocity: {has_fb_velo}/{len(pitcher_contracts)} ({has_fb_velo/len(pitcher_contracts)*100:.1f}%)")
+if 'xera' in master_df.columns:
+    has_xera = pitcher_contracts['xera'].notna().sum()
+    print(f"  xERA: {has_xera}/{len(pitcher_contracts)} ({has_xera/len(pitcher_contracts)*100:.1f}%)")
+if 'whiff_percent_pitcher' in master_df.columns:
+    has_whiff_p = pitcher_contracts['whiff_percent_pitcher'].notna().sum()
+    print(f"  Whiff%: {has_whiff_p}/{len(pitcher_contracts)} ({has_whiff_p/len(pitcher_contracts)*100:.1f}%)")
 
 print("\n" + "=" * 80)
 print("INTEGRATION COMPLETE!")

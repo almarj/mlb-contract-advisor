@@ -38,6 +38,19 @@ class PredictionRequest(BaseModel):
     max_exit_velo: Optional[float] = Field(None, description="Max exit velocity")
     hard_hit_pct: Optional[float] = Field(None, description="Hard hit %")
 
+    # Plate discipline metrics (percentiles 0-100, batters only)
+    chase_rate: Optional[float] = Field(None, description="Chase rate percentile (0-100)")
+    whiff_rate: Optional[float] = Field(None, description="Whiff rate percentile (0-100)")
+
+    # Pitcher Statcast metrics (percentiles 0-100, pitchers only)
+    fb_velocity: Optional[float] = Field(None, description="Fastball velocity percentile (0-100)")
+    fb_spin: Optional[float] = Field(None, description="Fastball spin percentile (0-100)")
+    xera: Optional[float] = Field(None, description="Expected ERA percentile (0-100)")
+    k_percent: Optional[float] = Field(None, description="K% percentile (0-100)")
+    bb_percent: Optional[float] = Field(None, description="BB% percentile (0-100)")
+    whiff_percent_pitcher: Optional[float] = Field(None, description="Whiff% induced percentile (0-100)")
+    chase_percent_pitcher: Optional[float] = Field(None, description="Chase% induced percentile (0-100)")
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -155,6 +168,19 @@ class PlayerStats(BaseModel):
     barrel_rate: Optional[float] = None
     max_exit_velo: Optional[float] = None
     hard_hit_pct: Optional[float] = None
+
+    # Plate discipline (percentiles 0-100, batters)
+    chase_rate: Optional[float] = None
+    whiff_rate: Optional[float] = None
+
+    # Pitcher Statcast (percentiles 0-100)
+    fb_velocity: Optional[float] = None
+    fb_spin: Optional[float] = None
+    xera: Optional[float] = None
+    k_percent: Optional[float] = None
+    bb_percent: Optional[float] = None
+    whiff_percent_pitcher: Optional[float] = None
+    chase_percent_pitcher: Optional[float] = None
 
     class Config:
         from_attributes = True

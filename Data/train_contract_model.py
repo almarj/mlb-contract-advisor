@@ -51,6 +51,8 @@ BATTER_STATCAST_FEATURES = [
     'barrel_rate',
     'max_exit_velo',
     'hard_hit_pct',
+    'chase_rate',  # Plate discipline percentile (0-100)
+    'whiff_rate',  # Plate discipline percentile (0-100)
 ]
 
 PITCHER_FEATURES = [
@@ -63,6 +65,16 @@ PITCHER_FEATURES = [
     'IP_3yr',
     'seasons_with_data',
     'year_signed',
+]
+
+PITCHER_STATCAST_FEATURES = [
+    'fb_velocity',  # Fastball velocity percentile (0-100)
+    'fb_spin',  # Fastball spin percentile (0-100)
+    'xera',  # Expected ERA percentile (0-100)
+    'k_percent',  # K% percentile (0-100)
+    'bb_percent',  # BB% percentile (0-100)
+    'whiff_percent_pitcher',  # Whiff% induced percentile (0-100)
+    'chase_percent_pitcher',  # Chase% induced percentile (0-100)
 ]
 
 # Position encoding
@@ -153,12 +165,25 @@ def prepare_pitcher_features(df):
 
     features = PITCHER_FEATURES.copy()
 
+    # Add Statcast features if available (> 50% coverage)
+    for feat in PITCHER_STATCAST_FEATURES:
+        if feat in pitchers.columns:
+            coverage = pitchers[feat].notna().mean()
+            if coverage > 0.5:
+                features.append(feat)
+                print(f"  Including Statcast feature: {feat} ({coverage:.1%} coverage)")
+
     # Position encoding (SP vs RP)
     pitchers['is_starter'] = (pitchers['position_group'] == 'SP').astype(int)
     features.append('is_starter')
 
     # Drop rows with missing core features
     pitchers_clean = pitchers.dropna(subset=PITCHER_FEATURES)
+
+    # Fill missing Statcast with median
+    for feat in PITCHER_STATCAST_FEATURES:
+        if feat in features and feat in pitchers_clean.columns:
+            pitchers_clean[feat] = pitchers_clean[feat].fillna(pitchers_clean[feat].median())
 
     print(f"  Clean pitchers: {len(pitchers_clean)} (dropped {len(pitchers) - len(pitchers_clean)} with missing data)")
 

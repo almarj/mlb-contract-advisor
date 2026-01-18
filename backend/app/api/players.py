@@ -73,10 +73,21 @@ async def search_players(
                         k_9_3yr=contract.k_9_3yr,
                         bb_9_3yr=contract.bb_9_3yr,
                         ip_3yr=contract.ip_3yr,
+                        # Batter Statcast
                         avg_exit_velo=contract.avg_exit_velo,
                         barrel_rate=contract.barrel_rate,
                         max_exit_velo=contract.max_exit_velo,
                         hard_hit_pct=contract.hard_hit_pct,
+                        chase_rate=contract.chase_rate,
+                        whiff_rate=contract.whiff_rate,
+                        # Pitcher Statcast
+                        fb_velocity=contract.fb_velocity,
+                        fb_spin=contract.fb_spin,
+                        xera=contract.xera,
+                        k_percent=contract.k_percent,
+                        bb_percent=contract.bb_percent,
+                        whiff_percent_pitcher=contract.whiff_percent_pitcher,
+                        chase_percent_pitcher=contract.chase_percent_pitcher,
                     )
             else:
                 # Prospect: get stats directly from Player table
@@ -96,6 +107,21 @@ async def search_players(
                     k_9_3yr=p.k_9_3yr,
                     bb_9_3yr=p.bb_9_3yr,
                     ip_3yr=p.ip_3yr,
+                    # Batter Statcast
+                    avg_exit_velo=p.avg_exit_velo,
+                    barrel_rate=p.barrel_rate,
+                    max_exit_velo=p.max_exit_velo,
+                    hard_hit_pct=p.hard_hit_pct,
+                    chase_rate=p.chase_rate,
+                    whiff_rate=p.whiff_rate,
+                    # Pitcher Statcast
+                    fb_velocity=p.fb_velocity,
+                    fb_spin=p.fb_spin,
+                    xera=p.xera,
+                    k_percent=p.k_percent,
+                    bb_percent=p.bb_percent,
+                    whiff_percent_pitcher=p.whiff_percent_pitcher,
+                    chase_percent_pitcher=p.chase_percent_pitcher,
                 )
 
         results.append(PlayerSearchResult(

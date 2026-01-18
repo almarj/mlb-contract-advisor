@@ -16,6 +16,10 @@ from pathlib import Path
 from app.models.database import engine, Base, Contract, Player, SessionLocal
 from app.config import MASTER_DATA_DIR
 
+# Statcast data cache (loaded once)
+BATTER_STATCAST_CACHE = {}
+PITCHER_STATCAST_CACHE = {}
+
 PITCHER_POSITIONS = ['SP', 'RP', 'P', 'CL']
 
 # Path to FanGraphs data (one level up from backend)
@@ -145,6 +149,129 @@ def calculate_recent_stats_pitcher(player_name: str, pitching_df: pd.DataFrame, 
     }
 
 
+def load_statcast_data():
+    """Load Statcast percentile data from pybaseball for recent years."""
+    global BATTER_STATCAST_CACHE, PITCHER_STATCAST_CACHE
+
+    try:
+        from pybaseball import statcast_batter_percentile_ranks, statcast_pitcher_percentile_ranks, cache
+        cache.enable()
+    except ImportError:
+        print("Warning: pybaseball not installed, skipping Statcast data")
+        return False
+
+    # Load recent years (2023-2025 for prospects)
+    years_to_load = [2023, 2024, 2025]
+
+    print("\nLoading Statcast percentile data...")
+    for year in years_to_load:
+        try:
+            print(f"  Loading batter percentiles for {year}...", end='')
+            BATTER_STATCAST_CACHE[year] = statcast_batter_percentile_ranks(year)
+            print(f" ({len(BATTER_STATCAST_CACHE[year])} players)")
+        except Exception as e:
+            print(f" Error: {e}")
+
+        try:
+            print(f"  Loading pitcher percentiles for {year}...", end='')
+            PITCHER_STATCAST_CACHE[year] = statcast_pitcher_percentile_ranks(year)
+            print(f" ({len(PITCHER_STATCAST_CACHE[year])} pitchers)")
+        except Exception as e:
+            print(f" Error: {e}")
+
+    return True
+
+
+def get_batter_statcast(player_name: str, last_season: int) -> dict:
+    """Get Statcast metrics for a batter from the most recent available year."""
+    norm_name = normalize_name(player_name)
+
+    # Try the last season first, then work backwards
+    for year in [last_season, last_season - 1, last_season - 2]:
+        if year not in BATTER_STATCAST_CACHE:
+            continue
+
+        df = BATTER_STATCAST_CACHE[year]
+        if 'player_name' not in df.columns and 'last_name' in df.columns:
+            # Build full name from first/last
+            df = df.copy()
+            df['player_name'] = df.get('first_name', '') + ' ' + df.get('last_name', '')
+
+        # Match by name
+        matches = df[df['player_name'].apply(lambda x: normalize_name(str(x)) if pd.notna(x) else '') == norm_name]
+
+        if len(matches) == 0:
+            # Try partial match on last name
+            last_name = norm_name.split()[-1] if ' ' in norm_name else norm_name
+            matches = df[df['player_name'].apply(
+                lambda x: last_name in normalize_name(str(x)) if pd.notna(x) else False
+            )]
+            # Further filter by first name if multiple matches
+            if len(matches) > 1:
+                first_name = norm_name.split()[0] if ' ' in norm_name else ''
+                if first_name:
+                    matches = matches[matches['player_name'].apply(
+                        lambda x: first_name in normalize_name(str(x)) if pd.notna(x) else False
+                    )]
+
+        if len(matches) > 0:
+            row = matches.iloc[0]
+            return {
+                'avg_exit_velo': float(row['exit_velocity']) if 'exit_velocity' in row and pd.notna(row.get('exit_velocity')) else None,
+                'barrel_rate': float(row['barrel']) if 'barrel' in row and pd.notna(row.get('barrel')) else None,
+                'max_exit_velo': float(row['hard_hit']) if 'hard_hit' in row and pd.notna(row.get('hard_hit')) else None,  # Using hard_hit as proxy
+                'hard_hit_pct': float(row['hard_hit']) if 'hard_hit' in row and pd.notna(row.get('hard_hit')) else None,
+                'chase_rate': float(row['chase_percent']) if 'chase_percent' in row and pd.notna(row.get('chase_percent')) else None,
+                'whiff_rate': float(row['whiff_percent']) if 'whiff_percent' in row and pd.notna(row.get('whiff_percent')) else None,
+            }
+
+    return {}
+
+
+def get_pitcher_statcast(player_name: str, last_season: int) -> dict:
+    """Get Statcast metrics for a pitcher from the most recent available year."""
+    norm_name = normalize_name(player_name)
+
+    # Try the last season first, then work backwards
+    for year in [last_season, last_season - 1, last_season - 2]:
+        if year not in PITCHER_STATCAST_CACHE:
+            continue
+
+        df = PITCHER_STATCAST_CACHE[year]
+        if 'player_name' not in df.columns and 'last_name' in df.columns:
+            df = df.copy()
+            df['player_name'] = df.get('first_name', '') + ' ' + df.get('last_name', '')
+
+        # Match by name
+        matches = df[df['player_name'].apply(lambda x: normalize_name(str(x)) if pd.notna(x) else '') == norm_name]
+
+        if len(matches) == 0:
+            last_name = norm_name.split()[-1] if ' ' in norm_name else norm_name
+            matches = df[df['player_name'].apply(
+                lambda x: last_name in normalize_name(str(x)) if pd.notna(x) else False
+            )]
+            if len(matches) > 1:
+                first_name = norm_name.split()[0] if ' ' in norm_name else ''
+                if first_name:
+                    matches = matches[matches['player_name'].apply(
+                        lambda x: first_name in normalize_name(str(x)) if pd.notna(x) else False
+                    )]
+
+        if len(matches) > 0:
+            row = matches.iloc[0]
+            return {
+                'fb_velocity': float(row['fb_velocity']) if 'fb_velocity' in row and pd.notna(row.get('fb_velocity')) else None,
+                'fb_spin': float(row['fb_spin']) if 'fb_spin' in row and pd.notna(row.get('fb_spin')) else None,
+                'xera': float(row['xera']) if 'xera' in row and pd.notna(row.get('xera')) else None,
+                'k_percent': float(row['k_percent']) if 'k_percent' in row and pd.notna(row.get('k_percent')) else None,
+                'bb_percent': float(row['bb_percent']) if 'bb_percent' in row and pd.notna(row.get('bb_percent')) else None,
+                'whiff_percent_pitcher': float(row['whiff_percent']) if 'whiff_percent' in row and pd.notna(row.get('whiff_percent')) else None,
+                'chase_percent_pitcher': float(row['chase_percent']) if 'chase_percent' in row and pd.notna(row.get('chase_percent')) else None,
+            }
+
+    return {}
+
+
 def is_likely_extension(age: int, length: int) -> bool:
     """
     Determine if a contract is likely a pre-free agency extension.
@@ -214,6 +341,16 @@ def seed_contracts(db, df, batting_df=None, pitching_df=None):
             barrel_rate=float(row['barrel_rate']) if pd.notna(row.get('barrel_rate')) else None,
             max_exit_velo=float(row['max_exit_velo']) if pd.notna(row.get('max_exit_velo')) else None,
             hard_hit_pct=float(row['hard_hit_pct']) if pd.notna(row.get('hard_hit_pct')) else None,
+            chase_rate=float(row['chase_rate']) if pd.notna(row.get('chase_rate')) else None,
+            whiff_rate=float(row['whiff_rate']) if pd.notna(row.get('whiff_rate')) else None,
+            # Pitcher Statcast
+            fb_velocity=float(row['fb_velocity']) if pd.notna(row.get('fb_velocity')) else None,
+            fb_spin=float(row['fb_spin']) if pd.notna(row.get('fb_spin')) else None,
+            xera=float(row['xera']) if pd.notna(row.get('xera')) else None,
+            k_percent=float(row['k_percent']) if pd.notna(row.get('k_percent')) else None,
+            bb_percent=float(row['bb_percent']) if pd.notna(row.get('bb_percent')) else None,
+            whiff_percent_pitcher=float(row['whiff_percent_pitcher']) if pd.notna(row.get('whiff_percent_pitcher')) else None,
+            chase_percent_pitcher=float(row['chase_percent_pitcher']) if pd.notna(row.get('chase_percent_pitcher')) else None,
             is_extension=is_ext,
             # Recent performance stats
             recent_war_3yr=recent_stats.get('recent_war_3yr'),
@@ -307,6 +444,9 @@ def seed_prospects(db, signed_player_names: set):
         if stats['war_3yr'] is None or stats['current_age'] is None:
             continue
 
+        # Get Statcast data for this batter
+        statcast = get_batter_statcast(original_name, stats['last_season'])
+
         player = Player(
             name=original_name,
             position="DH",  # Default for batters; user can change in form
@@ -321,6 +461,13 @@ def seed_prospects(db, signed_player_names: set):
             obp_3yr=stats['obp_3yr'],
             slg_3yr=stats['slg_3yr'],
             hr_3yr=stats['hr_3yr'],
+            # Batter Statcast
+            avg_exit_velo=statcast.get('avg_exit_velo'),
+            barrel_rate=statcast.get('barrel_rate'),
+            max_exit_velo=statcast.get('max_exit_velo'),
+            hard_hit_pct=statcast.get('hard_hit_pct'),
+            chase_rate=statcast.get('chase_rate'),
+            whiff_rate=statcast.get('whiff_rate'),
         )
         db.add(player)
         prospects_added += 1
@@ -364,6 +511,9 @@ def seed_prospects(db, signed_player_names: set):
         # Determine position (SP vs RP)
         position = "SP" if stats['is_starter'] else "RP"
 
+        # Get Statcast data for this pitcher
+        statcast = get_pitcher_statcast(original_name, stats['last_season'])
+
         player = Player(
             name=original_name,
             position=position,
@@ -378,6 +528,14 @@ def seed_prospects(db, signed_player_names: set):
             k_9_3yr=stats['k_9_3yr'],
             bb_9_3yr=stats['bb_9_3yr'],
             ip_3yr=stats['ip_3yr'],
+            # Pitcher Statcast
+            fb_velocity=statcast.get('fb_velocity'),
+            fb_spin=statcast.get('fb_spin'),
+            xera=statcast.get('xera'),
+            k_percent=statcast.get('k_percent'),
+            bb_percent=statcast.get('bb_percent'),
+            whiff_percent_pitcher=statcast.get('whiff_percent_pitcher'),
+            chase_percent_pitcher=statcast.get('chase_percent_pitcher'),
         )
         db.add(player)
         prospects_added += 1
@@ -430,6 +588,9 @@ def main():
     Base.metadata.drop_all(bind=engine)  # Clear existing data
     Base.metadata.create_all(bind=engine)
     print("Tables created")
+
+    # Load Statcast data for prospects
+    load_statcast_data()
 
     # Seed data
     db = SessionLocal()

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 interface PredictionFormProps {
   onSubmit: (data: PredictionRequest) => void;
@@ -121,6 +122,16 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
         barrel_rate: stats.barrel_rate ?? undefined,
         max_exit_velo: stats.max_exit_velo ?? undefined,
         hard_hit_pct: stats.hard_hit_pct ?? undefined,
+        chase_rate: stats.chase_rate ?? undefined,
+        whiff_rate: stats.whiff_rate ?? undefined,
+        // Pitcher Statcast
+        fb_velocity: stats.fb_velocity ?? undefined,
+        fb_spin: stats.fb_spin ?? undefined,
+        xera: stats.xera ?? undefined,
+        k_percent: stats.k_percent ?? undefined,
+        bb_percent: stats.bb_percent ?? undefined,
+        whiff_percent_pitcher: stats.whiff_percent_pitcher ?? undefined,
+        chase_percent_pitcher: stats.chase_percent_pitcher ?? undefined,
       });
     } else {
       // Just update name and position
@@ -167,6 +178,8 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
       delete cleanedData.barrel_rate;
       delete cleanedData.max_exit_velo;
       delete cleanedData.hard_hit_pct;
+      delete cleanedData.chase_rate;
+      delete cleanedData.whiff_rate;
 
       // Set default pitcher values if missing
       if (!cleanedData.era_3yr) cleanedData.era_3yr = 3.50;
@@ -181,6 +194,14 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
       delete cleanedData.k_9_3yr;
       delete cleanedData.bb_9_3yr;
       delete cleanedData.ip_3yr;
+      // Remove pitcher Statcast
+      delete cleanedData.fb_velocity;
+      delete cleanedData.fb_spin;
+      delete cleanedData.xera;
+      delete cleanedData.k_percent;
+      delete cleanedData.bb_percent;
+      delete cleanedData.whiff_percent_pitcher;
+      delete cleanedData.chase_percent_pitcher;
     }
 
     onSubmit(cleanedData);
@@ -484,6 +505,169 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
                       step="0.1"
                       placeholder="45.0"
                     />
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t">
+                  <h4 className="text-sm font-medium mb-3 text-muted-foreground">Plate Discipline (Percentiles 0-100)</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="chase_rate">Chase Rate</Label>
+                      <Input
+                        id="chase_rate"
+                        type="number"
+                        name="chase_rate"
+                        value={formData.chase_rate || ''}
+                        onChange={handleChange}
+                        step="1"
+                        min="0"
+                        max="100"
+                        placeholder="50"
+                      />
+                      <p className="text-xs text-muted-foreground">Higher = less chasing</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="whiff_rate">Whiff Rate</Label>
+                      <Input
+                        id="whiff_rate"
+                        type="number"
+                        name="whiff_rate"
+                        value={formData.whiff_rate || ''}
+                        onChange={handleChange}
+                        step="1"
+                        min="0"
+                        max="100"
+                        placeholder="50"
+                      />
+                      <p className="text-xs text-muted-foreground">Higher = better contact</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Advanced Stats (Statcast) - Pitchers only */}
+      {isPitcherPosition && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {showAdvanced ? 'Hide' : 'Show'} Pitcher Statcast Metrics
+          </button>
+
+          {showAdvanced && (
+            <Card className="mt-3">
+              <CardContent className="pt-4">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Statcast percentile rankings (0-100). Higher = better. Leave blank to use average values.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fb_velocity">FB Velocity</Label>
+                    <Input
+                      id="fb_velocity"
+                      type="number"
+                      name="fb_velocity"
+                      value={formData.fb_velocity || ''}
+                      onChange={handleChange}
+                      step="1"
+                      min="0"
+                      max="100"
+                      placeholder="50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fb_spin">FB Spin</Label>
+                    <Input
+                      id="fb_spin"
+                      type="number"
+                      name="fb_spin"
+                      value={formData.fb_spin || ''}
+                      onChange={handleChange}
+                      step="1"
+                      min="0"
+                      max="100"
+                      placeholder="50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="xera">xERA</Label>
+                    <Input
+                      id="xera"
+                      type="number"
+                      name="xera"
+                      value={formData.xera || ''}
+                      onChange={handleChange}
+                      step="1"
+                      min="0"
+                      max="100"
+                      placeholder="50"
+                    />
+                    <p className="text-xs text-muted-foreground">Higher = better</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="k_percent">K%</Label>
+                    <Input
+                      id="k_percent"
+                      type="number"
+                      name="k_percent"
+                      value={formData.k_percent || ''}
+                      onChange={handleChange}
+                      step="1"
+                      min="0"
+                      max="100"
+                      placeholder="50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bb_percent">BB%</Label>
+                    <Input
+                      id="bb_percent"
+                      type="number"
+                      name="bb_percent"
+                      value={formData.bb_percent || ''}
+                      onChange={handleChange}
+                      step="1"
+                      min="0"
+                      max="100"
+                      placeholder="50"
+                    />
+                    <p className="text-xs text-muted-foreground">Higher = fewer walks</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="whiff_percent_pitcher">Whiff%</Label>
+                    <Input
+                      id="whiff_percent_pitcher"
+                      type="number"
+                      name="whiff_percent_pitcher"
+                      value={formData.whiff_percent_pitcher || ''}
+                      onChange={handleChange}
+                      step="1"
+                      min="0"
+                      max="100"
+                      placeholder="50"
+                    />
+                    <p className="text-xs text-muted-foreground">Higher = more swings and misses</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="chase_percent_pitcher">Chase%</Label>
+                    <Input
+                      id="chase_percent_pitcher"
+                      type="number"
+                      name="chase_percent_pitcher"
+                      value={formData.chase_percent_pitcher || ''}
+                      onChange={handleChange}
+                      step="1"
+                      min="0"
+                      max="100"
+                      placeholder="50"
+                    />
+                    <p className="text-xs text-muted-foreground">Higher = more chases induced</p>
                   </div>
                 </div>
               </CardContent>
