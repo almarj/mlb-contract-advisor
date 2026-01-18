@@ -18,26 +18,33 @@ interface PredictionResultProps {
 }
 
 export default function PredictionResult({ prediction, showAdvanced }: PredictionResultProps) {
-  const getAssessment = () => {
-    // If player has an actual contract, compare predicted vs actual
-    if (prediction.actual_aav !== null) {
-      const diff = prediction.actual_aav - prediction.predicted_aav;
-      const pctDiff = (diff / prediction.predicted_aav) * 100;
-
-      if (Math.abs(pctDiff) < 10) {
-        return { text: 'Fair Value', variant: 'success' as const, hasActual: true };
-      } else if (pctDiff > 10) {
-        return { text: 'Overpaid', variant: 'warning' as const, hasActual: true };
-      } else {
-        return { text: 'Underpaid', variant: 'info' as const, hasActual: true };
-      }
+  // Calculate assessment comparing actual vs predicted
+  const getAssessment = (actualAAV: number | null, predictedAAV: number) => {
+    if (actualAAV === null) {
+      return { text: 'Projected', variant: 'neutral' as const, pctDiff: 0 };
     }
+    const diff = actualAAV - predictedAAV;
+    const pctDiff = (diff / predictedAAV) * 100;
 
-    // For free agents (no actual contract), show "Projected" instead
-    return { text: 'Projected', variant: 'neutral' as const, hasActual: false };
+    if (Math.abs(pctDiff) < 10) {
+      return { text: 'Fair Value', variant: 'success' as const, pctDiff };
+    } else if (pctDiff > 10) {
+      return { text: 'Overpaid', variant: 'warning' as const, pctDiff };
+    } else {
+      return { text: 'Underpaid', variant: 'info' as const, pctDiff };
+    }
   };
 
-  const assessment = getAssessment();
+  // Assessment at signing (actual vs predicted based on pre-signing stats)
+  const assessmentAtSigning = getAssessment(prediction.actual_aav, prediction.predicted_aav);
+
+  // Assessment based on recent performance (actual vs predicted based on recent stats)
+  const assessmentRecent = prediction.predicted_aav_recent !== null
+    ? getAssessment(prediction.actual_aav, prediction.predicted_aav_recent)
+    : null;
+
+  // For backwards compatibility
+  const assessment = assessmentAtSigning;
 
   // Generate natural language assessment summary
   const generateSummary = (): string[] => {
@@ -57,23 +64,44 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
     const totalComps = prediction.comparables.length;
 
     if (prediction.actual_aav !== null) {
-      // Signed player - compare predicted vs actual
+      // Signed player - compare predicted vs actual at signing
       const actualAAV = formatAAV(prediction.actual_aav);
       const diff = prediction.actual_aav - prediction.predicted_aav;
       const pctDiff = Math.abs((diff / prediction.predicted_aav) * 100);
 
       if (assessment.text === 'Fair Value') {
         sentences.push(
-          `${playerName}'s ${actualAAV} AAV is within ${pctDiff.toFixed(0)}% of our model's predicted ${predictedAAV}, suggesting the contract reflects fair market value based on performance.`
+          `At signing, ${playerName}'s ${actualAAV} AAV was within ${pctDiff.toFixed(0)}% of our model's predicted ${predictedAAV}, suggesting the contract reflected fair market value at the time.`
         );
       } else if (assessment.text === 'Overpaid') {
         sentences.push(
-          `${playerName}'s ${actualAAV} AAV is ${pctDiff.toFixed(0)}% above our model's predicted ${predictedAAV}. This may reflect factors like marketability, team needs, or bidding competition not captured in performance metrics.`
+          `At signing, ${playerName}'s ${actualAAV} AAV was ${pctDiff.toFixed(0)}% above our model's predicted ${predictedAAV}. This may reflect factors like marketability, team needs, or bidding competition not captured in performance metrics.`
         );
       } else {
         sentences.push(
-          `${playerName}'s ${actualAAV} AAV is ${pctDiff.toFixed(0)}% below our model's predicted ${predictedAAV}, suggesting the player may have been undervalued or accepted a team-friendly deal.`
+          `At signing, ${playerName}'s ${actualAAV} AAV was ${pctDiff.toFixed(0)}% below our model's predicted ${predictedAAV}, suggesting the player may have been undervalued or accepted a team-friendly deal.`
         );
+      }
+
+      // Add recent performance analysis if available
+      if (prediction.predicted_aav_recent !== null && assessmentRecent) {
+        const recentPredictedAAV = formatAAV(prediction.predicted_aav_recent);
+        const recentDiff = prediction.actual_aav - prediction.predicted_aav_recent;
+        const recentPctDiff = Math.abs((recentDiff / prediction.predicted_aav_recent) * 100);
+
+        if (assessmentRecent.text === 'Fair Value') {
+          sentences.push(
+            `Based on recent performance (2023-2025), the model would predict ${recentPredictedAAV}, which is still close to the actual contract value.`
+          );
+        } else if (assessmentRecent.text === 'Overpaid') {
+          sentences.push(
+            `However, based on recent performance (2023-2025), the model would only predict ${recentPredictedAAV} — making the contract ${recentPctDiff.toFixed(0)}% above current value.`
+          );
+        } else {
+          sentences.push(
+            `Based on recent performance (2023-2025), the model would predict ${recentPredictedAAV}, meaning the player has outperformed the contract by ${recentPctDiff.toFixed(0)}%.`
+          );
+        }
       }
     } else {
       // Prospect/free agent - projection only
@@ -116,53 +144,76 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
 
   return (
     <div className="space-y-6">
-      {/* Main Prediction */}
-      <Card className="bg-muted/50">
-        <CardContent className="text-center py-8">
-          <p className="text-sm text-muted-foreground mb-2">Predicted Contract Value (AAV)</p>
-          <p className="text-5xl font-bold text-primary font-mono">
-            {formatAAV(prediction.predicted_aav)}
-          </p>
-          <p className="text-lg text-foreground mt-2">
-            {prediction.predicted_length} year{prediction.predicted_length !== 1 ? 's' : ''}
-          </p>
-          <div className="mt-4">
-            <Badge className={getBadgeClass(assessment.variant)}>
-              {assessment.text}
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Contract Assessment (for signed players) */}
+      {prediction.actual_aav !== null ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Contract Assessment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* At Signing Assessment */}
+              <div className="border rounded-lg p-4 text-center">
+                <p className="text-sm font-medium text-muted-foreground mb-2">At Signing</p>
+                <Badge className={`${getBadgeClass(assessmentAtSigning.variant)} mb-3`}>
+                  {assessmentAtSigning.text}
+                </Badge>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Actual AAV</p>
+                  <p className="text-lg font-bold font-mono">{formatAAV(prediction.actual_aav)}</p>
+                  <p className="text-xs text-muted-foreground mt-2">Model Predicted</p>
+                  <p className="text-lg font-semibold font-mono text-primary">{formatAAV(prediction.predicted_aav)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {assessmentAtSigning.pctDiff > 0 ? '+' : ''}{assessmentAtSigning.pctDiff.toFixed(0)}% vs prediction
+                  </p>
+                </div>
+              </div>
 
-      {/* Actual Contract Comparison (if player has signed) */}
-      {prediction.actual_aav !== null && (
-        <Card className="border-2 border-dashed">
-          <CardContent className="py-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">Model Predicted</p>
-                <p className="text-2xl font-bold font-mono text-primary">
-                  {formatAAV(prediction.predicted_aav)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {prediction.predicted_length} year{prediction.predicted_length !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">Actual Contract</p>
-                <p className="text-2xl font-bold font-mono">
-                  {formatAAV(prediction.actual_aav)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {prediction.actual_length} year{prediction.actual_length !== 1 ? 's' : ''}
-                </p>
-              </div>
+              {/* Recent Performance Assessment */}
+              {assessmentRecent && prediction.predicted_aav_recent !== null && (
+                <div className="border rounded-lg p-4 text-center">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Based on Recent Performance</p>
+                  <Badge className={`${getBadgeClass(assessmentRecent.variant)} mb-3`}>
+                    {assessmentRecent.text}
+                  </Badge>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Actual AAV</p>
+                    <p className="text-lg font-bold font-mono">{formatAAV(prediction.actual_aav)}</p>
+                    <p className="text-xs text-muted-foreground mt-2">Would Predict Today</p>
+                    <p className="text-lg font-semibold font-mono text-primary">{formatAAV(prediction.predicted_aav_recent)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {assessmentRecent.pctDiff > 0 ? '+' : ''}{assessmentRecent.pctDiff.toFixed(0)}% vs prediction
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Fallback if no recent stats */}
+              {!assessmentRecent && (
+                <div className="border rounded-lg p-4 text-center border-dashed opacity-50">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Based on Recent Performance</p>
+                  <p className="text-sm text-muted-foreground">No recent stats available</p>
+                </div>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground text-center mt-4">
-              Difference: {formatAAV(Math.abs(prediction.actual_aav - prediction.predicted_aav))}
-              {' '}({prediction.actual_aav > prediction.predicted_aav ? '+' : '-'}
-              {Math.abs(((prediction.actual_aav - prediction.predicted_aav) / prediction.predicted_aav) * 100).toFixed(0)}%)
+          </CardContent>
+        </Card>
+      ) : (
+        /* Main Prediction (for prospects/unsigned players only) */
+        <Card className="bg-muted/50">
+          <CardContent className="text-center py-8">
+            <p className="text-sm text-muted-foreground mb-2">Predicted Contract Value (AAV)</p>
+            <p className="text-5xl font-bold text-primary font-mono">
+              {formatAAV(prediction.predicted_aav)}
             </p>
+            <p className="text-lg text-foreground mt-2">
+              {prediction.predicted_length} year{prediction.predicted_length !== 1 ? 's' : ''}
+            </p>
+            <div className="mt-4">
+              <Badge className={getBadgeClass(assessment.variant)}>
+                {assessment.text}
+              </Badge>
+            </div>
           </CardContent>
         </Card>
       )}

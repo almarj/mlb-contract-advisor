@@ -54,6 +54,8 @@ export interface PredictionResponse {
   recent_war_3yr: number | null;
   recent_wrc_plus_3yr: number | null;
   recent_era_3yr: number | null;
+  // Prediction based on recent performance
+  predicted_aav_recent: number | null;
   confidence_score: number;
   comparables: ComparablePlayer[];
   feature_importance: Record<string, number>;

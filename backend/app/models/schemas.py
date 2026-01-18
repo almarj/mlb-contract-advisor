@@ -96,6 +96,9 @@ class PredictionResponse(BaseModel):
     recent_wrc_plus_3yr: Optional[float] = Field(None, description="Recent 3-year wRC+")
     recent_era_3yr: Optional[float] = Field(None, description="Recent 3-year ERA (pitchers)")
 
+    # Prediction based on recent performance (for contract assessment)
+    predicted_aav_recent: Optional[float] = Field(None, description="Predicted AAV based on recent performance")
+
     # Confidence
     confidence_score: float = Field(..., ge=0, le=100, description="Model confidence %")
 
