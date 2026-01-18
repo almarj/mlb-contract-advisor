@@ -7,8 +7,10 @@ AI-powered MLB contract prediction tool that estimates player contract values (A
 ## Features
 
 - **Contract Predictions** - Get AI-powered AAV and contract length predictions for any MLB player
-- **Player Autocomplete** - Search players with automatic stats population from historical data
-- **Comparable Players** - Find similar historical contracts based on position, WAR, age, and recency
+- **Free Agent Search** - Search any player with FanGraphs data, including upcoming free agents
+- **Contract Assessment** - Fair Value / Overpaid / Underpaid ratings based on predicted vs actual AAV
+- **Assessment Summary** - Natural language explanations of predictions and contract evaluations
+- **Comparable Players** - Find similar historical contracts with extension flags for pre-FA deals
 - **Feature Importance** - See which stats most influence the prediction
 - **Historical Database** - Browse 450+ MLB contracts from 2015-2026
 - **Separate Models** - Dedicated ML models for batters and pitchers

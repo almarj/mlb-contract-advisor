@@ -183,9 +183,32 @@ curl -X POST "http://localhost:8000/api/v1/predictions" \
 - `predicted_aav`: Predicted AAV in dollars
 - `predicted_aav_low` / `predicted_aav_high`: Range based on MAE
 - `predicted_length`: Contract length in years
+- `actual_aav` / `actual_length`: Actual contract values (for signed players)
 - `confidence_score`: Model accuracy percentage
-- `comparables`: 5 similar historical contracts
+- `comparables`: 5 similar historical contracts (with `is_extension` flag)
 - `feature_importance`: Top 5 features driving prediction
+
+## Contract Assessment Feature
+
+The app evaluates contracts by comparing predicted vs actual AAV:
+
+### Assessment Labels
+- **Fair Value**: Actual AAV within 15% of predicted
+- **Overpaid**: Actual AAV >15% above predicted
+- **Underpaid**: Actual AAV >15% below predicted
+- **Projected**: No actual contract (free agents/prospects)
+
+### Extension Detection
+Pre-free agency extensions are flagged using this heuristic:
+- Age at signing <= 25 AND contract length >= 6 years
+
+Extensions are marked with purple badges in the comparables table and noted in the assessment summary, since they typically have below-market AAVs.
+
+### Assessment Summary
+Natural language explanation generated for each prediction:
+- Contract evaluation (fair value, overpaid, underpaid)
+- Top 2 features driving the prediction
+- Extension caveat if comparables include pre-FA deals
 
 ## Frontend
 
