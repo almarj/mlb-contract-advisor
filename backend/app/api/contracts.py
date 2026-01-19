@@ -29,6 +29,12 @@ async def list_contracts(
     position: Optional[str] = Query(None, description="Filter by position"),
     year_min: Optional[int] = Query(None, description="Minimum year signed"),
     year_max: Optional[int] = Query(None, description="Maximum year signed"),
+    aav_min: Optional[float] = Query(None, description="Minimum AAV in millions"),
+    aav_max: Optional[float] = Query(None, description="Maximum AAV in millions"),
+    war_min: Optional[float] = Query(None, description="Minimum 3-year WAR"),
+    war_max: Optional[float] = Query(None, description="Maximum 3-year WAR"),
+    length_min: Optional[int] = Query(None, description="Minimum contract length"),
+    length_max: Optional[int] = Query(None, description="Maximum contract length"),
     team: Optional[str] = Query(None, description="Filter by team"),
     sort_by: str = Query("aav", description="Sort field: aav, year, name, length"),
     sort_order: str = Query("desc", description="Sort order: asc or desc"),
@@ -40,7 +46,7 @@ async def list_contracts(
 
     Features:
     - Pagination (20 per page default)
-    - Filter by position, year range, team
+    - Filter by position, year range, AAV range, WAR range, length range, team
     - Sort by AAV, year, name, length
     - Search by player name
     """
@@ -55,6 +61,27 @@ async def list_contracts(
 
     if year_max:
         query = query.filter(Contract.year_signed <= year_max)
+
+    # AAV filters (convert millions to actual value)
+    if aav_min is not None:
+        query = query.filter(Contract.aav >= aav_min * 1_000_000)
+
+    if aav_max is not None:
+        query = query.filter(Contract.aav <= aav_max * 1_000_000)
+
+    # WAR filters
+    if war_min is not None:
+        query = query.filter(Contract.war_3yr >= war_min)
+
+    if war_max is not None:
+        query = query.filter(Contract.war_3yr <= war_max)
+
+    # Length filters
+    if length_min is not None:
+        query = query.filter(Contract.length >= length_min)
+
+    if length_max is not None:
+        query = query.filter(Contract.length <= length_max)
 
     if search:
         query = query.filter(Contract.player_name.ilike(f"%{search}%"))

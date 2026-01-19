@@ -227,6 +227,12 @@ export async function getContracts(params: {
   position?: string;
   year_min?: number;
   year_max?: number;
+  aav_min?: number;
+  aav_max?: number;
+  war_min?: number;
+  war_max?: number;
+  length_min?: number;
+  length_max?: number;
   search?: string;
   sort_by?: string;
   sort_order?: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import PredictionForm from '@/components/PredictionForm';
@@ -8,12 +8,31 @@ import PredictionResult from '@/components/PredictionResult';
 import { PredictionResponse, PredictionRequest, createPrediction } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+
+const HOW_IT_WORKS_KEY = 'mlb-contract-advisor-how-it-works-collapsed';
 
 export default function Home() {
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [howItWorksCollapsed, setHowItWorksCollapsed] = useState(false);
+
+  // Load collapsed state from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(HOW_IT_WORKS_KEY);
+    if (saved === 'true') {
+      setHowItWorksCollapsed(true);
+    }
+  }, []);
+
+  // Save collapsed state to localStorage
+  const toggleHowItWorks = () => {
+    const newValue = !howItWorksCollapsed;
+    setHowItWorksCollapsed(newValue);
+    localStorage.setItem(HOW_IT_WORKS_KEY, String(newValue));
+  };
 
   const handleSubmit = async (data: PredictionRequest) => {
     setIsLoading(true);
@@ -57,42 +76,56 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* How It Works Section */}
+        {/* How It Works Section - Collapsible */}
         <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-center">How It Works</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-primary font-bold text-lg">1</span>
-                </div>
-                <h3 className="font-medium mb-2">Enter Name</h3>
-                <p className="text-sm text-muted-foreground">
-                  Search for any MLB player and their stats will auto-fill from our database
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-primary font-bold text-lg">2</span>
-                </div>
-                <h3 className="font-medium mb-2">AI Analysis</h3>
-                <p className="text-sm text-muted-foreground">
-                  Our ML model analyzes 450+ historical contracts to find patterns
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-primary font-bold text-lg">3</span>
-                </div>
-                <h3 className="font-medium mb-2">Get Prediction</h3>
-                <p className="text-sm text-muted-foreground">
-                  Receive AAV estimate, contract length, and comparable players
-                </p>
-              </div>
+          <CardHeader
+            className="cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={toggleHowItWorks}
+          >
+            <div className="flex items-center justify-between">
+              <CardTitle>How It Works</CardTitle>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                {howItWorksCollapsed ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronUp className="h-4 w-4" />
+                )}
+              </Button>
             </div>
-          </CardContent>
+          </CardHeader>
+          {!howItWorksCollapsed && (
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-primary font-bold text-lg">1</span>
+                  </div>
+                  <h3 className="font-medium mb-2">Enter Name</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Search for any MLB player and their stats will auto-fill from our database
+                  </p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-primary font-bold text-lg">2</span>
+                  </div>
+                  <h3 className="font-medium mb-2">AI Analysis</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Our ML model analyzes 450+ historical contracts to find patterns
+                  </p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-primary font-bold text-lg">3</span>
+                  </div>
+                  <h3 className="font-medium mb-2">Get Prediction</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Receive AAV estimate, contract length, and comparable players
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* Mode Toggle */}
