@@ -140,6 +140,56 @@ export interface ContractListResponse {
   total_pages: number;
 }
 
+// Year-by-year stats types
+export interface BatterYearlyStats {
+  season: number;
+  team: string;
+  war: number | null;
+  wrc_plus: number | null;
+  avg: number | null;
+  obp: number | null;
+  slg: number | null;
+  hr: number | null;
+  rbi: number | null;
+  sb: number | null;
+  runs: number | null;
+  hits: number | null;
+  games: number | null;
+  pa: number | null;
+}
+
+export interface PitcherYearlyStats {
+  season: number;
+  team: string;
+  war: number | null;
+  era: number | null;
+  fip: number | null;
+  k_9: number | null;
+  bb_9: number | null;
+  ip: number | null;
+  games: number | null;
+  wins: number | null;
+  losses: number | null;
+}
+
+export interface PlayerYearlyStatsResponse {
+  player_name: string;
+  position: string;
+  is_pitcher: boolean;
+  seasons: number[];
+  batter_stats: BatterYearlyStats[] | null;
+  pitcher_stats: PitcherYearlyStats[] | null;
+}
+
+export interface ContractSummary {
+  total_contracts: number;
+  year_min: number;
+  year_max: number;
+  aav_min: number;
+  aav_max: number;
+  unique_positions: number;
+}
+
 // API Functions
 export async function createPrediction(data: PredictionRequest): Promise<PredictionResponse> {
   const response = await fetch(`${API_BASE_URL}/api/v1/predictions`, {
@@ -200,6 +250,26 @@ export async function getContracts(params: {
 
 export async function checkHealth(): Promise<{ status: string; models_loaded: boolean }> {
   const response = await fetch(`${API_BASE_URL}/health`);
+  return response.json();
+}
+
+export async function getContractPlayerStats(contractId: number): Promise<PlayerYearlyStatsResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/contracts/${contractId}/stats`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch player stats');
+  }
+
+  return response.json();
+}
+
+export async function getContractsSummary(): Promise<ContractSummary> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/contracts/summary`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch contracts summary');
+  }
+
   return response.json();
 }
 

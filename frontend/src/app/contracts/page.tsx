@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { getContracts, ContractListResponse, formatAAV } from '@/lib/api';
+import { getContracts, getContractsSummary, formatAAV } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ExpandableStatsRow } from '@/components/ExpandableStatsRow';
 
 const POSITIONS = ['All', 'OF', '1B', '2B', '3B', 'SS', 'C', 'DH', 'SP', 'RP'];
 
@@ -33,6 +35,19 @@ export default function ContractsPage() {
   const [sortOrder, setSortOrder] = useState<string>('desc');
   const [search, setSearch] = useState<string>('');
   const [searchInput, setSearchInput] = useState<string>('');
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const toggleRow = (contractId: number) => {
+    setExpandedRows((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(contractId)) {
+        newSet.delete(contractId);
+      } else {
+        newSet.add(contractId);
+      }
+      return newSet;
+    });
+  };
 
   // Fetch contracts with SWR
   const { data, error, isLoading } = useSWR(
@@ -47,6 +62,9 @@ export default function ContractsPage() {
     }),
     { keepPreviousData: true }
   );
+
+  // Fetch summary stats (cached, doesn't change often)
+  const { data: summary } = useSWR('contracts-summary', getContractsSummary);
 
   // Debounce search
   useEffect(() => {
@@ -178,21 +196,41 @@ export default function ContractsPage() {
                     </TableHeader>
                     <TableBody>
                       {data.contracts.map((contract) => (
-                        <TableRow key={contract.id}>
-                          <TableCell className="font-medium">{contract.player_name}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {contract.position}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{contract.year_signed}</TableCell>
-                          <TableCell className="text-right">{contract.age_at_signing}</TableCell>
-                          <TableCell className="text-right font-mono">{formatAAV(contract.aav)}</TableCell>
-                          <TableCell className="text-right">{contract.length}</TableCell>
-                          <TableCell className="text-right">
-                            {contract.war_3yr?.toFixed(1) ?? '-'}
-                          </TableCell>
-                        </TableRow>
+                        <React.Fragment key={contract.id}>
+                          <TableRow
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => toggleRow(contract.id)}
+                          >
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                {expandedRows.has(contract.id) ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                {contract.player_name}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {contract.position}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{contract.year_signed}</TableCell>
+                            <TableCell className="text-right">{contract.age_at_signing}</TableCell>
+                            <TableCell className="text-right font-mono">{formatAAV(contract.aav)}</TableCell>
+                            <TableCell className="text-right">{contract.length}</TableCell>
+                            <TableCell className="text-right">
+                              {contract.war_3yr?.toFixed(1) ?? '-'}
+                            </TableCell>
+                          </TableRow>
+                          <ExpandableStatsRow
+                            contractId={contract.id}
+                            playerName={contract.player_name}
+                            position={contract.position}
+                            isExpanded={expandedRows.has(contract.id)}
+                          />
+                        </React.Fragment>
                       ))}
                     </TableBody>
                   </Table>
@@ -229,29 +267,31 @@ export default function ContractsPage() {
         </Card>
 
         {/* Stats Summary */}
-        {data && (
+        {summary && (
           <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-primary">{data.total}</p>
+                <p className="text-2xl font-bold text-primary">{summary.total_contracts}</p>
                 <p className="text-sm text-muted-foreground">Total Contracts</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-green-600">2015-2024</p>
+                <p className="text-2xl font-bold text-green-600">{summary.year_min}-{summary.year_max}</p>
                 <p className="text-sm text-muted-foreground">Years Covered</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-purple-600">10+</p>
+                <p className="text-2xl font-bold text-purple-600">{summary.unique_positions}</p>
                 <p className="text-sm text-muted-foreground">Positions</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-orange-600">$10M+</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {formatAAV(summary.aav_min)} - {formatAAV(summary.aav_max)}
+                </p>
                 <p className="text-sm text-muted-foreground">AAV Range</p>
               </CardContent>
             </Card>

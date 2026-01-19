@@ -8,7 +8,16 @@ from sqlalchemy import desc, asc
 import math
 
 from app.models.database import get_db, Contract
-from app.models.schemas import ContractListResponse, ContractRecord
+from sqlalchemy import func
+from app.models.schemas import (
+    ContractListResponse,
+    ContractRecord,
+    ContractSummaryResponse,
+    PlayerYearlyStatsResponse,
+    BatterYearlyStats,
+    PitcherYearlyStats,
+)
+from app.services.stats_service import stats_service
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 
@@ -82,6 +91,28 @@ async def list_contracts(
     )
 
 
+@router.get("/summary", response_model=ContractSummaryResponse)
+async def get_contracts_summary(db: Session = Depends(get_db)):
+    """Get summary statistics for the contracts database."""
+    result = db.query(
+        func.count(Contract.id).label('total'),
+        func.min(Contract.year_signed).label('year_min'),
+        func.max(Contract.year_signed).label('year_max'),
+        func.min(Contract.aav).label('aav_min'),
+        func.max(Contract.aav).label('aav_max'),
+        func.count(func.distinct(Contract.position)).label('positions')
+    ).first()
+
+    return ContractSummaryResponse(
+        total_contracts=result.total,
+        year_min=result.year_min,
+        year_max=result.year_max,
+        aav_min=result.aav_min,
+        aav_max=result.aav_max,
+        unique_positions=result.positions
+    )
+
+
 @router.get("/{contract_id}", response_model=ContractRecord)
 async def get_contract(
     contract_id: int,
@@ -94,3 +125,64 @@ async def get_contract(
         raise HTTPException(status_code=404, detail="Contract not found")
 
     return ContractRecord.model_validate(contract)
+
+
+# Pitcher positions for determining player type
+PITCHER_POSITIONS = ['SP', 'RP', 'P', 'CL']
+
+
+@router.get("/{contract_id}/stats", response_model=PlayerYearlyStatsResponse)
+async def get_contract_player_stats(
+    contract_id: int,
+    num_years: int = Query(3, ge=1, le=10, description="Number of recent seasons to include"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get year-by-year stats for the player associated with a contract.
+
+    Returns individual season stats for the most recent completed seasons.
+    The years are dynamically determined based on the current date.
+    """
+    # Get the contract
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    # Check if stats service is loaded
+    if not stats_service.is_loaded:
+        raise HTTPException(
+            status_code=503,
+            detail="Stats data not available. FanGraphs CSV files may not be loaded."
+        )
+
+    # Determine if pitcher
+    is_pitcher = contract.position.upper() in PITCHER_POSITIONS
+
+    # Get the seasons that will be queried
+    seasons = stats_service.get_recent_completed_seasons(num_years)
+
+    # Get yearly stats
+    stats = stats_service.get_player_yearly_stats(
+        player_name=contract.player_name,
+        is_pitcher=is_pitcher,
+        num_years=num_years
+    )
+
+    if is_pitcher:
+        return PlayerYearlyStatsResponse(
+            player_name=contract.player_name,
+            position=contract.position,
+            is_pitcher=True,
+            seasons=seasons,
+            pitcher_stats=[PitcherYearlyStats(**s) for s in stats],
+            batter_stats=None
+        )
+    else:
+        return PlayerYearlyStatsResponse(
+            player_name=contract.player_name,
+            position=contract.position,
+            is_pitcher=False,
+            seasons=seasons,
+            batter_stats=[BatterYearlyStats(**s) for s in stats],
+            pitcher_stats=None
+        )

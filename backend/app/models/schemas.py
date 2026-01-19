@@ -234,6 +234,63 @@ class ContractListResponse(BaseModel):
 
 
 # ============================================================================
+# Year-by-Year Stats Schemas
+# ============================================================================
+
+class BatterYearlyStats(BaseModel):
+    """Single season batting stats."""
+    season: int
+    team: str
+    war: Optional[float] = None
+    wrc_plus: Optional[float] = None
+    avg: Optional[float] = None
+    obp: Optional[float] = None
+    slg: Optional[float] = None
+    hr: Optional[int] = None
+    rbi: Optional[int] = None
+    sb: Optional[int] = None
+    runs: Optional[int] = None
+    hits: Optional[int] = None
+    games: Optional[int] = None
+    pa: Optional[int] = None
+
+
+class PitcherYearlyStats(BaseModel):
+    """Single season pitching stats."""
+    season: int
+    team: str
+    war: Optional[float] = None
+    era: Optional[float] = None
+    fip: Optional[float] = None
+    k_9: Optional[float] = None
+    bb_9: Optional[float] = None
+    ip: Optional[float] = None
+    games: Optional[int] = None
+    wins: Optional[int] = None
+    losses: Optional[int] = None
+
+
+class PlayerYearlyStatsResponse(BaseModel):
+    """Response for player year-by-year stats."""
+    player_name: str
+    position: str
+    is_pitcher: bool
+    seasons: List[int] = Field(default_factory=list, description="Years included in response")
+    batter_stats: Optional[List[BatterYearlyStats]] = None
+    pitcher_stats: Optional[List[PitcherYearlyStats]] = None
+
+
+class ContractSummaryResponse(BaseModel):
+    """Summary statistics for the contracts database."""
+    total_contracts: int
+    year_min: int
+    year_max: int
+    aav_min: float
+    aav_max: float
+    unique_positions: int
+
+
+# ============================================================================
 # Health Check
 # ============================================================================
 

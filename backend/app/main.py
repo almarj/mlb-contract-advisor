@@ -19,6 +19,7 @@ from app.config import (
 from app.models.database import init_db, SessionLocal
 from app.models.schemas import HealthResponse
 from app.services.prediction_service import prediction_service
+from app.services.stats_service import stats_service
 from app.api import predictions, players, contracts
 
 
@@ -45,6 +46,14 @@ async def lifespan(app: FastAPI):
         print(f"Loaded {len(prediction_service.models)} models successfully")
     else:
         print("Warning: Failed to load some models")
+
+    # Load FanGraphs stats data for year-by-year lookups
+    print("Loading FanGraphs stats data...")
+    data_dir = BASE_DIR.parent / "Data"
+    if stats_service.load_data(data_dir):
+        print("Stats data loaded successfully")
+    else:
+        print("Warning: Failed to load stats data (year-by-year stats will be unavailable)")
 
     yield
 
