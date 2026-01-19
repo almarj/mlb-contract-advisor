@@ -6,8 +6,6 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from app.models.schemas import PredictionRequest, PredictionResponse, ComparablePlayer
 from app.models.database import get_db, Contract
@@ -23,9 +21,6 @@ from app.utils import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Get limiter instance (will be set by main app)
-limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/predictions", tags=["Predictions"])
 
@@ -123,7 +118,6 @@ def find_comparables_by_recent_performance(
 
 
 @router.post("", response_model=PredictionResponse)
-@limiter.limit(RATE_LIMIT)
 async def create_prediction(request_obj: Request, request: PredictionRequest, db: Session = Depends(get_db)):
     """
     Generate a contract prediction for a player.
