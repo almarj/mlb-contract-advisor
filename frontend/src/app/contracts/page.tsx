@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/table';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import { ExpandableStatsRow } from '@/components/ExpandableStatsRow';
+import { ContractCard } from '@/components/ContractCard';
 import {
   Tooltip,
   TooltipContent,
@@ -175,6 +176,7 @@ export default function ContractsPage() {
               </div>
               <nav className="flex gap-4">
                 <Link href="/" className="hover:text-primary-foreground/80">Predict</Link>
+                <Link href="/compare" className="hover:text-primary-foreground/80">Compare</Link>
                 <Link href="/contracts" className="hover:text-primary-foreground/80 font-medium">Contracts</Link>
               </nav>
             </div>
@@ -313,10 +315,10 @@ export default function ContractsPage() {
                 </div>
               )}
 
-              {/* Contracts Table */}
+              {/* Contracts Table (Desktop) */}
               {data && (
                 <>
-                  <div className="overflow-x-auto rounded-md border max-h-[600px] overflow-y-auto">
+                  <div className="hidden md:block overflow-x-auto rounded-md border max-h-[600px] overflow-y-auto">
                     <Table>
                       <TableHeader className="sticky top-0 bg-background z-10">
                         <TableRow>
@@ -409,6 +411,18 @@ export default function ContractsPage() {
                         ))}
                       </TableBody>
                     </Table>
+                  </div>
+
+                  {/* Contracts Cards (Mobile) */}
+                  <div className="md:hidden space-y-3">
+                    {data.contracts.map((contract) => (
+                      <ContractCard
+                        key={contract.id}
+                        contract={contract}
+                        isExpanded={expandedRows.has(contract.id)}
+                        onToggle={() => toggleRow(contract.id)}
+                      />
+                    ))}
                   </div>
 
                   {/* Pagination */}

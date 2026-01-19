@@ -68,6 +68,7 @@ export default function Home() {
             </div>
             <nav className="flex gap-4">
               <Link href="/" className="hover:text-primary-foreground/80 font-medium">Predict</Link>
+              <Link href="/compare" className="hover:text-primary-foreground/80">Compare</Link>
               <Link href="/contracts" className="hover:text-primary-foreground/80">Contracts</Link>
             </nav>
           </div>
