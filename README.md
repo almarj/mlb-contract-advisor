@@ -14,6 +14,7 @@ AI-powered MLB contract prediction tool that estimates player contract values (A
 - **Comparable Players** - Find similar historical contracts with extension flags for pre-FA deals
 - **Feature Importance** - See which stats most influence the prediction
 - **Historical Database** - Browse 450+ MLB contracts from 2015-2026
+- **Expandable Contract Rows** - Click any contract to see year-by-year stats (dynamically updates each season)
 - **Separate Models** - Dedicated ML models for batters and pitchers
 
 ## Model Performance
@@ -108,6 +109,8 @@ The frontend runs on `http://localhost:3000` and expects the backend at `http://
 | `/api/v1/predictions` | POST | Get contract prediction |
 | `/api/v1/players/search` | GET | Search players by name |
 | `/api/v1/contracts` | GET | List historical contracts |
+| `/api/v1/contracts/summary` | GET | Database summary stats |
+| `/api/v1/contracts/{id}/stats` | GET | Year-by-year player stats |
 
 ### Example Prediction Request
 
