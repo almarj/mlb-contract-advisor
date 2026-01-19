@@ -276,9 +276,12 @@ async def create_prediction(request_obj: Request, request: PredictionRequest, db
     except HTTPException:
         raise
     except Exception as e:
-        # Log the full error for debugging, but return generic message to client
-        logger.exception("Prediction failed for player %s: %s", request.name, str(e))
+        # Log the full error for debugging
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.exception("Prediction failed for player %s: %s\n%s", request.name, str(e), error_trace)
+        # Return detailed error in development/debug mode
         raise HTTPException(
             status_code=500,
-            detail="An error occurred while generating the prediction. Please try again."
+            detail=f"Prediction error: {str(e)}"
         )
