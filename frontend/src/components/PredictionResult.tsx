@@ -132,13 +132,13 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
   const getBadgeClass = (variant: 'success' | 'warning' | 'info' | 'neutral') => {
     switch (variant) {
       case 'success':
-        return 'bg-green-100 text-green-700 hover:bg-green-100';
+        return 'bg-emerald-50 text-emerald-800 hover:bg-emerald-50';
       case 'warning':
-        return 'bg-orange-100 text-orange-700 hover:bg-orange-100';
+        return 'bg-amber-50 text-amber-800 hover:bg-amber-50';
       case 'info':
-        return 'bg-blue-100 text-blue-700 hover:bg-blue-100';
+        return 'bg-slate-100 text-slate-700 hover:bg-slate-100';
       case 'neutral':
-        return 'bg-gray-100 text-gray-700 hover:bg-gray-100';
+        return 'bg-gray-50 text-gray-700 hover:bg-gray-50';
     }
   };
 
@@ -255,9 +255,9 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
                     <p className={`text-lg font-semibold ${
                       prediction.recent_war_3yr !== null && prediction.signing_war_3yr !== null
                         ? prediction.recent_war_3yr < prediction.signing_war_3yr * 0.5
-                          ? 'text-red-600'
+                          ? 'text-rose-700'
                           : prediction.recent_war_3yr > prediction.signing_war_3yr
-                            ? 'text-green-600'
+                            ? 'text-emerald-700'
                             : ''
                         : ''
                     }`}>
@@ -270,9 +270,9 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
                       <p className={`text-lg font-semibold ${
                         prediction.recent_wrc_plus_3yr !== null && prediction.signing_wrc_plus_3yr !== null
                           ? prediction.recent_wrc_plus_3yr < prediction.signing_wrc_plus_3yr * 0.7
-                            ? 'text-red-600'
+                            ? 'text-rose-700'
                             : prediction.recent_wrc_plus_3yr > prediction.signing_wrc_plus_3yr
-                              ? 'text-green-600'
+                              ? 'text-emerald-700'
                               : ''
                           : ''
                       }`}>
@@ -286,9 +286,9 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
                       <p className={`text-lg font-semibold ${
                         prediction.recent_era_3yr !== null && prediction.signing_era_3yr !== null
                           ? prediction.recent_era_3yr > prediction.signing_era_3yr * 1.5
-                            ? 'text-red-600'
+                            ? 'text-rose-700'
                             : prediction.recent_era_3yr < prediction.signing_era_3yr
-                              ? 'text-green-600'
+                              ? 'text-emerald-700'
                               : ''
                           : ''
                       }`}>
@@ -373,7 +373,7 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
                       <div className="flex items-center gap-2">
                         {comp.name}
                         {comp.is_extension && (
-                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                          <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
                             Extension
                           </Badge>
                         )}
@@ -387,9 +387,9 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
                       <Badge
                         variant="outline"
                         className={
-                          comp.similarity_score >= 90 ? 'bg-green-100 text-green-700 border-green-200' :
-                          comp.similarity_score >= 80 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                          'bg-gray-100 text-gray-700 border-gray-200'
+                          comp.similarity_score >= 90 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                          comp.similarity_score >= 80 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          'bg-slate-50 text-slate-700 border-slate-200'
                         }
                       >
                         {comp.similarity_score.toFixed(0)}%
@@ -430,7 +430,7 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
                         <div className="flex items-center gap-2">
                           {comp.name}
                           {comp.is_extension && (
-                            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                            <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
                               Extension
                             </Badge>
                           )}
@@ -444,9 +444,9 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
                         <Badge
                           variant="outline"
                           className={
-                            comp.similarity_score >= 90 ? 'bg-green-100 text-green-700 border-green-200' :
-                            comp.similarity_score >= 80 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                            'bg-gray-100 text-gray-700 border-gray-200'
+                            comp.similarity_score >= 90 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                            comp.similarity_score >= 80 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                            'bg-slate-50 text-slate-700 border-slate-200'
                           }
                         >
                           {comp.similarity_score.toFixed(0)}%

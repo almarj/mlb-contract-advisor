@@ -194,19 +194,19 @@ export default function ContractsPage() {
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-green-600">{summary.year_min}-{summary.year_max}</p>
+                  <p className="text-2xl font-bold text-primary">{summary.year_min}-{summary.year_max}</p>
                   <p className="text-sm text-muted-foreground">Years Covered</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-purple-600">{summary.unique_positions}</p>
+                  <p className="text-2xl font-bold text-primary">{summary.unique_positions}</p>
                   <p className="text-sm text-muted-foreground">Positions</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-orange-600">
+                  <p className="text-2xl font-bold text-primary">
                     {formatAAV(summary.aav_min)} - {formatAAV(summary.aav_max)}
                   </p>
                   <p className="text-sm text-muted-foreground">AAV Range</p>

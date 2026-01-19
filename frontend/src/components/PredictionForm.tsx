@@ -367,7 +367,7 @@ export default function PredictionForm({ onSubmit, isLoading, onClear }: Predict
           {touched.has('name') && errors.name ? (
             <p className="text-xs text-destructive">{errors.name}</p>
           ) : selectedPlayer ? (
-            <p className={`text-xs ${isProspect ? 'text-blue-600' : 'text-green-600'}`}>
+            <p className={`text-xs ${isProspect ? 'text-slate-600' : 'text-emerald-700'}`}>
               {isProspect
                 ? 'Stats auto-filled from FanGraphs (pre-FA player)'
                 : 'Stats auto-filled from contract database'}
