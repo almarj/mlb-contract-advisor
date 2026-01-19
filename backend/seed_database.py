@@ -4,8 +4,6 @@ plus prospects from FanGraphs data.
 """
 import sys
 import os
-import re
-import unicodedata
 
 # Add app to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -13,14 +11,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from app.models.database import engine, Base, Contract, Player, SessionLocal
+from app.models.database import engine, Base, Contract, Player, PlayerYearlyStats, SessionLocal
 from app.config import MASTER_DATA_DIR
+from app.utils import normalize_name as _normalize_name, PITCHER_POSITIONS
 
 # Statcast data cache (loaded once)
 BATTER_STATCAST_CACHE = {}
 PITCHER_STATCAST_CACHE = {}
-
-PITCHER_POSITIONS = ['SP', 'RP', 'P', 'CL']
 
 # Path to FanGraphs data (one level up from backend)
 FANGRAPHS_DATA_DIR = Path(__file__).parent.parent / "Data"
@@ -29,25 +26,11 @@ FANGRAPHS_DATA_DIR = Path(__file__).parent.parent / "Data"
 def normalize_name(name):
     """
     Normalize player names for matching.
-    Handles accents (José→Jose), suffixes (Jr., II), and case.
+    Wrapper around shared utils function that handles pandas NA values.
     """
     if pd.isna(name):
         return ""
-    name = str(name)
-    # Remove accents
-    name = unicodedata.normalize('NFD', name)
-    name = ''.join(c for c in name if unicodedata.category(c) != 'Mn')
-    # Remove suffixes
-    suffixes = [' jr.', ' jr', ' sr.', ' sr', ' ii', ' iii', ' iv', ' v']
-    name_lower = name.lower()
-    for suffix in suffixes:
-        if name_lower.endswith(suffix):
-            name = name[:-len(suffix)]
-            break
-    # Remove special characters and normalize whitespace
-    name = re.sub(r"[^\w\s\-]", "", name)
-    name = ' '.join(name.split())
-    return name.lower().strip()
+    return _normalize_name(str(name))
 
 
 def calculate_3yr_avg_batter(player_seasons: pd.DataFrame) -> dict:
@@ -545,6 +528,105 @@ def seed_prospects(db, signed_player_names: set):
     return prospects_added
 
 
+def seed_yearly_stats(db, batting_df=None, pitching_df=None):
+    """
+    Seed player yearly stats table for fast lookups when expanding contract rows.
+
+    If CSV files are not available, fetches data from pybaseball.
+    """
+    print("\nSeeding yearly stats for fast lookups...")
+
+    # If DataFrames not provided, try to fetch from pybaseball
+    if batting_df is None or pitching_df is None:
+        try:
+            from pybaseball import batting_stats, pitching_stats, cache
+            cache.enable()
+
+            print("  Fetching batting stats from FanGraphs (this may take a few minutes)...")
+            batting_df = batting_stats(2015, 2025, qual=50)
+            batting_df['_normalized_name'] = batting_df['Name'].apply(normalize_name)
+            print(f"    Downloaded {len(batting_df)} batting seasons")
+
+            print("  Fetching pitching stats from FanGraphs...")
+            pitching_df = pitching_stats(2015, 2025, qual=10)
+            pitching_df['_normalized_name'] = pitching_df['Name'].apply(normalize_name)
+            print(f"    Downloaded {len(pitching_df)} pitching seasons")
+
+        except Exception as e:
+            print(f"  Error fetching data from pybaseball: {e}")
+            print("  Skipping yearly stats seeding - expand stats will use live API calls (slow)")
+            return 0
+
+    stats_added = 0
+
+    # Process batting stats
+    print("  Processing batting seasons...")
+    for _, row in batting_df.iterrows():
+        try:
+            stat = PlayerYearlyStats(
+                player_name=row['Name'],
+                normalized_name=normalize_name(row['Name']),
+                season=int(row['Season']),
+                team=str(row.get('Team', '')) if pd.notna(row.get('Team')) else None,
+                is_pitcher=False,
+                games=int(row['G']) if 'G' in row and pd.notna(row.get('G')) else None,
+                war=float(row['WAR']) if 'WAR' in row and pd.notna(row.get('WAR')) else None,
+                pa=int(row['PA']) if 'PA' in row and pd.notna(row.get('PA')) else None,
+                wrc_plus=float(row['wRC+']) if 'wRC+' in row and pd.notna(row.get('wRC+')) else None,
+                avg=float(row['AVG']) if 'AVG' in row and pd.notna(row.get('AVG')) else None,
+                obp=float(row['OBP']) if 'OBP' in row and pd.notna(row.get('OBP')) else None,
+                slg=float(row['SLG']) if 'SLG' in row and pd.notna(row.get('SLG')) else None,
+                hr=int(row['HR']) if 'HR' in row and pd.notna(row.get('HR')) else None,
+                rbi=int(row['RBI']) if 'RBI' in row and pd.notna(row.get('RBI')) else None,
+                runs=int(row['R']) if 'R' in row and pd.notna(row.get('R')) else None,
+                hits=int(row['H']) if 'H' in row and pd.notna(row.get('H')) else None,
+                sb=int(row['SB']) if 'SB' in row and pd.notna(row.get('SB')) else None,
+            )
+            db.add(stat)
+            stats_added += 1
+        except Exception as e:
+            # Skip rows with bad data
+            pass
+
+    # Commit batters
+    db.commit()
+    print(f"    Added {stats_added} batting seasons")
+
+    # Process pitching stats
+    print("  Processing pitching seasons...")
+    pitching_added = 0
+    for _, row in pitching_df.iterrows():
+        try:
+            stat = PlayerYearlyStats(
+                player_name=row['Name'],
+                normalized_name=normalize_name(row['Name']),
+                season=int(row['Season']),
+                team=str(row.get('Team', '')) if pd.notna(row.get('Team')) else None,
+                is_pitcher=True,
+                games=int(row['G']) if 'G' in row and pd.notna(row.get('G')) else None,
+                war=float(row['WAR']) if 'WAR' in row and pd.notna(row.get('WAR')) else None,
+                wins=int(row['W']) if 'W' in row and pd.notna(row.get('W')) else None,
+                losses=int(row['L']) if 'L' in row and pd.notna(row.get('L')) else None,
+                era=float(row['ERA']) if 'ERA' in row and pd.notna(row.get('ERA')) else None,
+                fip=float(row['FIP']) if 'FIP' in row and pd.notna(row.get('FIP')) else None,
+                k_9=float(row['K/9']) if 'K/9' in row and pd.notna(row.get('K/9')) else None,
+                bb_9=float(row['BB/9']) if 'BB/9' in row and pd.notna(row.get('BB/9')) else None,
+                ip=float(row['IP']) if 'IP' in row and pd.notna(row.get('IP')) else None,
+            )
+            db.add(stat)
+            pitching_added += 1
+        except Exception as e:
+            # Skip rows with bad data
+            pass
+
+    db.commit()
+    print(f"    Added {pitching_added} pitching seasons")
+
+    total_added = stats_added + pitching_added
+    print(f"  Total yearly stats seeded: {total_added}")
+    return total_added
+
+
 def main():
     """Main seeding function."""
     print("=" * 60)
@@ -594,10 +676,12 @@ def main():
 
     # Seed data
     db = SessionLocal()
+    yearly_stats_count = 0
     try:
         seed_contracts(db, df, batting_df, pitching_df)
         signed_names = seed_signed_players(db, df)
         prospects_count = seed_prospects(db, signed_names)
+        yearly_stats_count = seed_yearly_stats(db, batting_df, pitching_df)
         print("\nDatabase seeding complete!")
     finally:
         db.close()
@@ -608,6 +692,7 @@ def main():
     print(f"  Contracts: {len(df)}")
     print(f"  Signed Players: {df['player_name'].nunique()}")
     print(f"  Prospects: {prospects_count}")
+    print(f"  Yearly Stats: {yearly_stats_count}")
     print(f"  Years: {df['year_signed'].min()}-{df['year_signed'].max()}")
     print("=" * 60)
 

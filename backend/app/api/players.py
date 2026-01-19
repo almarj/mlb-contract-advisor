@@ -1,13 +1,16 @@
 """
 Player search API endpoints.
 """
-from typing import Optional
+import logging
+from typing import Optional, Dict
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.models.database import get_db, Player, Contract
 from app.models.schemas import PlayerSearchResponse, PlayerSearchResult, PlayerStats
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/players", tags=["Players"])
 
@@ -45,16 +48,29 @@ async def search_players(
 
     players = query.all()
 
+    # Batch load contracts for signed players to avoid N+1 queries
+    contracts_map: Dict[str, Contract] = {}
+    if include_stats:
+        signed_player_names = [p.name for p in players if p.has_contract]
+        if signed_player_names:
+            # Get all contracts for matching players in ONE query
+            contracts = db.query(Contract).filter(
+                Contract.player_name.in_(signed_player_names)
+            ).order_by(desc(Contract.year_signed)).all()
+
+            # Keep only the most recent contract per player
+            for contract in contracts:
+                if contract.player_name not in contracts_map:
+                    contracts_map[contract.player_name] = contract
+
     results = []
     for p in players:
         stats = None
 
         if include_stats:
             if p.has_contract:
-                # Signed player: get stats from most recent Contract
-                contract = db.query(Contract).filter(
-                    Contract.player_name == p.name
-                ).order_by(desc(Contract.year_signed)).first()
+                # Signed player: get stats from pre-loaded contracts map
+                contract = contracts_map.get(p.name)
 
                 if contract:
                     stats = PlayerStats(

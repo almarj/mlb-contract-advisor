@@ -1,7 +1,7 @@
 """
 Database configuration and models.
 """
-from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -122,6 +122,51 @@ class Player(Base):
     bb_percent = Column(Float, nullable=True)
     whiff_percent_pitcher = Column(Float, nullable=True)
     chase_percent_pitcher = Column(Float, nullable=True)
+
+
+class PlayerYearlyStats(Base):
+    """
+    Year-by-year stats for players.
+    Pre-computed during seeding for fast lookups when expanding contract rows.
+    """
+    __tablename__ = "player_yearly_stats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    player_name = Column(String, index=True)
+    normalized_name = Column(String, index=True)  # For fast lookups
+    season = Column(Integer, index=True)
+    team = Column(String, nullable=True)
+    is_pitcher = Column(Boolean, default=False)
+
+    # Common stats
+    games = Column(Integer, nullable=True)
+    war = Column(Float, nullable=True)
+
+    # Batter stats
+    pa = Column(Integer, nullable=True)
+    wrc_plus = Column(Float, nullable=True)
+    avg = Column(Float, nullable=True)
+    obp = Column(Float, nullable=True)
+    slg = Column(Float, nullable=True)
+    hr = Column(Integer, nullable=True)
+    rbi = Column(Integer, nullable=True)
+    runs = Column(Integer, nullable=True)
+    hits = Column(Integer, nullable=True)
+    sb = Column(Integer, nullable=True)
+
+    # Pitcher stats
+    wins = Column(Integer, nullable=True)
+    losses = Column(Integer, nullable=True)
+    era = Column(Float, nullable=True)
+    fip = Column(Float, nullable=True)
+    k_9 = Column(Float, nullable=True)
+    bb_9 = Column(Float, nullable=True)
+    ip = Column(Float, nullable=True)
+
+    # Composite index for common query pattern
+    __table_args__ = (
+        Index('ix_player_yearly_stats_lookup', 'normalized_name', 'is_pitcher', 'season'),
+    )
 
 
 def get_db():

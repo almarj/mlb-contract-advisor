@@ -1,25 +1,33 @@
 """
 Prediction API endpoints.
 """
+import logging
 from typing import List
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, func
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.models.schemas import PredictionRequest, PredictionResponse, ComparablePlayer
 from app.models.database import get_db, Contract
 from app.services.prediction_service import prediction_service
+from app.config import RATE_LIMIT
+from app.utils import (
+    normalize_name,
+    is_pitcher as check_is_pitcher,
+    get_position_group,
+    get_current_year,
+    PITCHER_POSITIONS,
+    POSITION_GROUPS,
+)
+
+logger = logging.getLogger(__name__)
+
+# Get limiter instance (will be set by main app)
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/predictions", tags=["Predictions"])
-
-# Position groupings for similarity matching
-POSITION_GROUPS = {
-    'SP': 'SP', 'RP': 'RP', 'CL': 'RP', 'P': 'SP',
-    'C': 'C', '1B': '1B', '2B': '2B', '3B': '3B', 'SS': 'SS',
-    'LF': 'OF', 'CF': 'OF', 'RF': 'OF', 'OF': 'OF', 'DH': 'DH',
-}
-
-PITCHER_POSITIONS = ['SP', 'RP', 'P', 'CL']
 
 
 def find_comparables_by_recent_performance(
@@ -35,21 +43,18 @@ def find_comparables_by_recent_performance(
     This compares the target player's recent WAR against other players' recent WAR,
     showing who is performing at a similar level RIGHT NOW.
     """
-    is_pitcher = position.upper() in PITCHER_POSITIONS
+    position_is_pitcher = check_is_pitcher(position)
+    current_year = get_current_year()
 
-    # Get all contracts with recent stats
-    contracts = db.query(Contract).filter(
-        Contract.recent_war_3yr.isnot(None)
-    ).all()
+    # Filter by player type in the database query (not in Python)
+    query = db.query(Contract).filter(Contract.recent_war_3yr.isnot(None))
 
-    if not contracts:
-        return []
-
-    # Filter to same player type (pitcher vs batter)
-    if is_pitcher:
-        contracts = [c for c in contracts if c.position in PITCHER_POSITIONS]
+    if position_is_pitcher:
+        query = query.filter(Contract.position.in_(PITCHER_POSITIONS))
     else:
-        contracts = [c for c in contracts if c.position not in PITCHER_POSITIONS]
+        query = query.filter(Contract.position.notin_(PITCHER_POSITIONS))
+
+    contracts = query.all()
 
     if not contracts:
         return []
@@ -57,7 +62,7 @@ def find_comparables_by_recent_performance(
     # Calculate similarity scores based on RECENT performance
     # Weight: 40% position, 35% recent WAR, 15% age, 10% recency of contract
     scored_contracts = []
-    pos_group = POSITION_GROUPS.get(position.upper(), 'OF')
+    pos_group = get_position_group(position)
 
     # Get max values for normalization
     war_diffs = [abs(c.recent_war_3yr - target_recent_war) for c in contracts]
@@ -66,14 +71,14 @@ def find_comparables_by_recent_performance(
     age_diffs = [abs(c.age_at_signing - current_age) for c in contracts]
     max_age_diff = max(age_diffs) if max(age_diffs) > 0 else 1
 
-    year_diffs = [2026 - c.year_signed for c in contracts]
+    year_diffs = [current_year - c.year_signed for c in contracts]
     max_year_diff = max(year_diffs) if max(year_diffs) > 0 else 1
 
     for contract in contracts:
         similarity = 0.0
 
         # Position similarity (40%)
-        contract_pos_group = POSITION_GROUPS.get(contract.position, 'OF')
+        contract_pos_group = get_position_group(contract.position)
         if contract_pos_group == pos_group:
             similarity += 40
 
@@ -86,7 +91,7 @@ def find_comparables_by_recent_performance(
         similarity += (1 - age_diff / max_age_diff) * 15
 
         # Recency (10%)
-        year_diff = 2026 - contract.year_signed
+        year_diff = current_year - contract.year_signed
         similarity += (1 - year_diff / max_year_diff) * 10
 
         scored_contracts.append((contract, similarity))
@@ -117,28 +122,9 @@ def find_comparables_by_recent_performance(
     return comparables
 
 
-def normalize_name(name: str) -> str:
-    """Normalize player name for matching."""
-    import unicodedata
-    import re
-    if not name:
-        return ""
-    # Remove accents
-    name = unicodedata.normalize('NFD', name)
-    name = ''.join(c for c in name if unicodedata.category(c) != 'Mn')
-    # Remove suffixes
-    suffixes = [' jr.', ' jr', ' sr.', ' sr', ' ii', ' iii', ' iv', ' v']
-    name_lower = name.lower()
-    for suffix in suffixes:
-        if name_lower.endswith(suffix):
-            name = name[:-len(suffix)]
-            break
-    name = re.sub(r"[^\w\s\-]", "", name)
-    return ' '.join(name.split()).lower().strip()
-
-
 @router.post("", response_model=PredictionResponse)
-async def create_prediction(request: PredictionRequest, db: Session = Depends(get_db)):
+@limiter.limit(RATE_LIMIT)
+async def create_prediction(request_obj: Request, request: PredictionRequest, db: Session = Depends(get_db)):
     """
     Generate a contract prediction for a player.
 
@@ -188,19 +174,25 @@ async def create_prediction(request: PredictionRequest, db: Session = Depends(ge
         contract = None
 
         if request.name:
-            # Try exact match first, then normalized match
+            # Try exact match first (case-insensitive)
             contract = db.query(Contract).filter(
                 Contract.player_name.ilike(request.name)
             ).order_by(desc(Contract.year_signed)).first()
 
             if not contract:
-                # Try normalized name match
+                # Try normalized name match using LIKE with wildcards
+                # This handles accents and suffixes better than exact match
                 normalized_input = normalize_name(request.name)
-                all_contracts = db.query(Contract).all()
-                for c in all_contracts:
-                    if normalize_name(c.player_name) == normalized_input:
-                        contract = c
-                        break
+                # Split into parts for flexible matching
+                name_parts = normalized_input.split()
+                if name_parts:
+                    # Match on first and last name parts
+                    query = db.query(Contract)
+                    for part in name_parts:
+                        query = query.filter(
+                            func.lower(Contract.player_name).contains(part)
+                        )
+                    contract = query.order_by(desc(Contract.year_signed)).first()
 
             if contract:
                 actual_aav = contract.aav
@@ -284,7 +276,9 @@ async def create_prediction(request: PredictionRequest, db: Session = Depends(ge
     except HTTPException:
         raise
     except Exception as e:
+        # Log the full error for debugging, but return generic message to client
+        logger.exception("Prediction failed for player %s: %s", request.name, str(e))
         raise HTTPException(
             status_code=500,
-            detail=f"Prediction failed: {str(e)}"
+            detail="An error occurred while generating the prediction. Please try again."
         )

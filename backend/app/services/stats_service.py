@@ -1,58 +1,105 @@
 """
-Stats service for fetching year-by-year player stats from FanGraphs via pybaseball.
+Stats service for fetching year-by-year player stats.
+
+Uses pre-computed data from the database for fast lookups (<50ms).
+Falls back to pybaseball API calls if database has no data.
 """
-from typing import Optional, List, Dict
-from datetime import datetime
-import unicodedata
-import re
+import asyncio
+import logging
+from concurrent.futures import ThreadPoolExecutor
+from typing import List, Dict, Optional
 
-# pybaseball imports
-from pybaseball import batting_stats, pitching_stats, cache
+from sqlalchemy.orm import Session
 
+from app.utils import normalize_name, get_recent_completed_seasons
 
-# Enable pybaseball caching to avoid repeated API calls
-cache.enable()
+logger = logging.getLogger(__name__)
+
+# Thread pool for fallback pybaseball calls (if needed)
+_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="stats_fallback")
 
 
 class StatsService:
-    """Service to fetch and query FanGraphs data for year-by-year stats."""
-
-    # MLB season typically ends in early October
-    SEASON_END_MONTH = 10
+    """Service to fetch and query year-by-year player stats."""
 
     def __init__(self):
-        self._loaded = True  # Always ready since we fetch on-demand
-
-    @staticmethod
-    def normalize_name(name: str) -> str:
-        """Normalize player name for matching (handles accents, suffixes)."""
-        # Remove accents
-        normalized = unicodedata.normalize('NFD', name)
-        normalized = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
-        # Remove common suffixes
-        normalized = re.sub(r'\s+(jr\.?|sr\.?|ii|iii|iv)$', '', normalized, flags=re.IGNORECASE)
-        return normalized.lower().strip()
+        self._loaded = True
 
     def get_recent_completed_seasons(self, num_years: int = 3) -> List[int]:
         """
         Dynamically determine the last N completed MLB seasons.
-
-        MLB season typically ends in early October, so:
-        - If current month >= October, current year is complete
-        - Otherwise, last complete season is previous year
         """
-        now = datetime.now()
-        current_year = now.year
-        current_month = now.month
+        return get_recent_completed_seasons(num_years)
 
-        # Determine the most recent completed season
-        if current_month >= self.SEASON_END_MONTH:
-            last_complete_season = current_year
-        else:
-            last_complete_season = current_year - 1
+    def get_player_yearly_stats_from_db(
+        self,
+        db: Session,
+        player_name: str,
+        is_pitcher: bool,
+        num_years: int = 3
+    ) -> List[Dict]:
+        """
+        Get year-by-year stats from the database (fast path).
 
-        # Return the last N seasons
-        return list(range(last_complete_season - num_years + 1, last_complete_season + 1))
+        Args:
+            db: Database session
+            player_name: Name of the player to look up
+            is_pitcher: True for pitcher stats, False for batter stats
+            num_years: Number of recent seasons to return (default 3)
+
+        Returns:
+            List of dicts containing stats for each season found
+        """
+        from app.models.database import PlayerYearlyStats
+
+        # Get the years to query
+        years = self.get_recent_completed_seasons(num_years)
+
+        # Normalize search name for lookup
+        search_name = normalize_name(player_name)
+
+        # Query database
+        stats = db.query(PlayerYearlyStats).filter(
+            PlayerYearlyStats.normalized_name == search_name,
+            PlayerYearlyStats.is_pitcher == is_pitcher,
+            PlayerYearlyStats.season.in_(years)
+        ).order_by(PlayerYearlyStats.season).all()
+
+        results = []
+        for s in stats:
+            if is_pitcher:
+                results.append({
+                    'season': s.season,
+                    'team': s.team or '',
+                    'war': s.war,
+                    'era': s.era,
+                    'fip': s.fip,
+                    'k_9': s.k_9,
+                    'bb_9': s.bb_9,
+                    'ip': s.ip,
+                    'games': s.games,
+                    'wins': s.wins,
+                    'losses': s.losses,
+                })
+            else:
+                results.append({
+                    'season': s.season,
+                    'team': s.team or '',
+                    'war': s.war,
+                    'wrc_plus': s.wrc_plus,
+                    'avg': s.avg,
+                    'obp': s.obp,
+                    'slg': s.slg,
+                    'hr': s.hr,
+                    'rbi': s.rbi,
+                    'sb': s.sb,
+                    'runs': s.runs,
+                    'hits': s.hits,
+                    'games': s.games,
+                    'pa': s.pa,
+                })
+
+        return results
 
     def get_player_yearly_stats(
         self,
@@ -61,39 +108,32 @@ class StatsService:
         num_years: int = 3
     ) -> List[Dict]:
         """
-        Get year-by-year stats for a player by fetching from FanGraphs via pybaseball.
+        Get year-by-year stats using pybaseball (fallback/legacy method).
 
-        Args:
-            player_name: Name of the player to look up
-            is_pitcher: True for pitcher stats, False for batter stats
-            num_years: Number of recent seasons to return (default 3)
-
-        Returns:
-            List of dicts containing stats for each season found
+        This method makes live API calls and is slow (5-10 seconds).
+        Prefer get_player_yearly_stats_from_db() for fast lookups.
         """
-        # Get the years to query
+        try:
+            from pybaseball import batting_stats, pitching_stats, cache
+            cache.enable()
+        except ImportError:
+            logger.warning("pybaseball not available for fallback stats fetch")
+            return []
+
         years = self.get_recent_completed_seasons(num_years)
         start_year = min(years)
         end_year = max(years)
-
-        # Normalize search name
-        search_name = self.normalize_name(player_name)
+        search_name = normalize_name(player_name)
 
         results = []
 
         try:
             if is_pitcher:
-                # Fetch pitching stats for the year range
-                # qual=1 to get all pitchers with at least 1 IP
                 df = pitching_stats(start_year, end_year, qual=1)
-
                 if df is None or df.empty:
                     return []
 
-                # Normalize names in dataframe for matching
-                df['name_normalized'] = df['Name'].apply(self.normalize_name)
-
-                # Filter by player name
+                df['name_normalized'] = df['Name'].apply(normalize_name)
                 matches = df[df['name_normalized'] == search_name].sort_values('Season')
 
                 for _, row in matches.iterrows():
@@ -111,17 +151,11 @@ class StatsService:
                         'losses': int(row['L']) if 'L' in row and row['L'] is not None else None,
                     })
             else:
-                # Fetch batting stats for the year range
-                # qual=1 to get all batters with at least 1 PA
                 df = batting_stats(start_year, end_year, qual=1)
-
                 if df is None or df.empty:
                     return []
 
-                # Normalize names in dataframe for matching
-                df['name_normalized'] = df['Name'].apply(self.normalize_name)
-
-                # Filter by player name
+                df['name_normalized'] = df['Name'].apply(normalize_name)
                 matches = df[df['name_normalized'] == search_name].sort_values('Season')
 
                 for _, row in matches.iterrows():
@@ -142,14 +176,55 @@ class StatsService:
                         'pa': int(row['PA']) if 'PA' in row and row['PA'] is not None else None,
                     })
         except Exception as e:
-            print(f"Error fetching stats for {player_name}: {e}")
+            logger.exception("Error fetching stats for %s: %s", player_name, e)
             return []
 
         return results
 
+    async def get_player_yearly_stats_async(
+        self,
+        db: Optional[Session],
+        player_name: str,
+        is_pitcher: bool,
+        num_years: int = 3
+    ) -> List[Dict]:
+        """
+        Async method to get player stats.
+
+        Tries database first (fast), falls back to pybaseball if no results.
+
+        Args:
+            db: Database session (if available)
+            player_name: Name of the player to look up
+            is_pitcher: True for pitcher stats, False for batter stats
+            num_years: Number of recent seasons to return (default 3)
+
+        Returns:
+            List of dicts containing stats for each season found
+        """
+        # Try database first (fast path)
+        if db is not None:
+            results = self.get_player_yearly_stats_from_db(
+                db, player_name, is_pitcher, num_years
+            )
+            if results:
+                logger.debug("Found %d seasons for %s in database", len(results), player_name)
+                return results
+
+        # Fall back to pybaseball (slow path)
+        logger.info("No database stats for %s, falling back to pybaseball", player_name)
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            _executor,
+            self.get_player_yearly_stats,
+            player_name,
+            is_pitcher,
+            num_years
+        )
+
     @property
     def is_loaded(self) -> bool:
-        """Check if service is ready (always True for on-demand fetching)."""
+        """Check if service is ready."""
         return self._loaded
 
 

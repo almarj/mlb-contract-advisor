@@ -1,14 +1,14 @@
 """
 Contract database API endpoints.
 """
+import logging
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, asc
+from sqlalchemy import desc, asc, func
 import math
 
 from app.models.database import get_db, Contract
-from sqlalchemy import func
 from app.models.schemas import (
     ContractListResponse,
     ContractRecord,
@@ -18,6 +18,9 @@ from app.models.schemas import (
     PitcherYearlyStats,
 )
 from app.services.stats_service import stats_service
+from app.utils import PITCHER_POSITIONS
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 
@@ -154,10 +157,6 @@ async def get_contract(
     return ContractRecord.model_validate(contract)
 
 
-# Pitcher positions for determining player type
-PITCHER_POSITIONS = ['SP', 'RP', 'P', 'CL']
-
-
 @router.get("/{contract_id}/stats", response_model=PlayerYearlyStatsResponse)
 async def get_contract_player_stats(
     contract_id: int,
@@ -188,8 +187,9 @@ async def get_contract_player_stats(
     # Get the seasons that will be queried
     seasons = stats_service.get_recent_completed_seasons(num_years)
 
-    # Get yearly stats
-    stats = stats_service.get_player_yearly_stats(
+    # Get yearly stats - tries database first (fast), falls back to pybaseball (slow)
+    stats = await stats_service.get_player_yearly_stats_async(
+        db=db,
         player_name=contract.player_name,
         is_pitcher=is_pitcher,
         num_years=num_years

@@ -3,9 +3,15 @@ MLB Contract Advisor - FastAPI Backend
 ======================================
 AI-powered MLB contract prediction API.
 """
+import logging
+import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.config import (
     API_V1_PREFIX,
@@ -14,45 +20,54 @@ from app.config import (
     ALLOWED_ORIGINS,
     BASE_DIR,
     MODELS_DIR,
-    DATABASE_URL
+    DATABASE_URL,
+    RATE_LIMIT,
 )
 from app.models.database import init_db, SessionLocal
 from app.models.schemas import HealthResponse
 from app.services.prediction_service import prediction_service
 from app.api import predictions, players, contracts
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+# Configure rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
     # Startup
-    print("Starting MLB Contract Advisor API...")
-    print(f"BASE_DIR: {BASE_DIR}")
-    print(f"MODELS_DIR: {MODELS_DIR}")
-    print(f"DATABASE_URL: {DATABASE_URL}")
-    print(f"Models dir exists: {MODELS_DIR.exists()}")
+    logger.info("Starting MLB Contract Advisor API...")
+    logger.debug("BASE_DIR: %s", BASE_DIR)
+    logger.debug("MODELS_DIR: %s", MODELS_DIR)
+    logger.debug("Models dir exists: %s", MODELS_DIR.exists())
     if MODELS_DIR.exists():
-        import os
-        print(f"Models dir contents: {os.listdir(MODELS_DIR)}")
+        logger.debug("Models dir contents: %s", os.listdir(MODELS_DIR))
 
     # Initialize database
-    print("Initializing database...")
+    logger.info("Initializing database...")
     init_db()
 
     # Load ML models
-    print("Loading ML models...")
+    logger.info("Loading ML models...")
     if prediction_service.load_models():
-        print(f"Loaded {len(prediction_service.models)} models successfully")
+        logger.info("Loaded %d models successfully", len(prediction_service.models))
     else:
-        print("Warning: Failed to load some models")
+        logger.warning("Failed to load some models")
 
     # Stats service uses on-demand fetching via pybaseball (no CSV loading needed)
-    print("Stats service ready (on-demand fetching via pybaseball)")
+    logger.info("Stats service ready (on-demand fetching via pybaseball)")
 
     yield
 
     # Shutdown
-    print("Shutting down...")
+    logger.info("Shutting down...")
 
 
 # Create FastAPI app
@@ -71,9 +86,16 @@ app = FastAPI(
     ## Model Performance
     - Accuracy within $5M: 73-74%
     - Separate models for batters and pitchers
+
+    ## Rate Limiting
+    - 100 requests per hour per IP address
     """,
     lifespan=lifespan,
 )
+
+# Add rate limiter state and exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add CORS middleware
 app.add_middleware(
@@ -106,14 +128,17 @@ async def health_check():
     """Check API health status."""
     # Check database connection
     db_connected = False
+    db = None
     try:
         from sqlalchemy import text
         db = SessionLocal()
         db.execute(text("SELECT 1"))
         db_connected = True
-        db.close()
-    except:
-        pass
+    except Exception as e:
+        logger.warning("Database health check failed: %s", e)
+    finally:
+        if db:
+            db.close()
 
     return HealthResponse(
         status="ok" if prediction_service.is_loaded else "degraded",
