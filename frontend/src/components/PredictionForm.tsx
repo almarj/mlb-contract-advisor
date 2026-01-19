@@ -19,20 +19,41 @@ import { ChevronUp, ChevronDown } from 'lucide-react';
 interface PredictionFormProps {
   onSubmit: (data: PredictionRequest) => void;
   isLoading: boolean;
+  onClear?: () => void;
 }
 
-export default function PredictionForm({ onSubmit, isLoading }: PredictionFormProps) {
-  const [formData, setFormData] = useState<PredictionRequest>({
-    name: '',
-    position: 'RF',
-    age: 28,
-    war_3yr: 3.0,
-    wrc_plus_3yr: 120,
-    avg_3yr: 0.270,
-    obp_3yr: 0.350,
-    slg_3yr: 0.450,
-    hr_3yr: 25,
-  });
+interface ValidationErrors {
+  name?: string;
+  age?: string;
+  war_3yr?: string;
+  wrc_plus_3yr?: string;
+  avg_3yr?: string;
+  obp_3yr?: string;
+  slg_3yr?: string;
+  hr_3yr?: string;
+  era_3yr?: string;
+  fip_3yr?: string;
+  k_9_3yr?: string;
+  bb_9_3yr?: string;
+  ip_3yr?: string;
+}
+
+const defaultFormData: PredictionRequest = {
+  name: '',
+  position: 'RF',
+  age: 28,
+  war_3yr: 3.0,
+  wrc_plus_3yr: 120,
+  avg_3yr: 0.270,
+  obp_3yr: 0.350,
+  slg_3yr: 0.450,
+  hr_3yr: 25,
+};
+
+export default function PredictionForm({ onSubmit, isLoading, onClear }: PredictionFormProps) {
+  const [formData, setFormData] = useState<PredictionRequest>(defaultFormData);
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [touched, setTouched] = useState<Set<string>>(new Set());
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,6 +63,84 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [isProspect, setIsProspect] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Validate a single field
+  const validateField = (name: string, value: unknown): string | undefined => {
+    switch (name) {
+      case 'name':
+        if (!value || (typeof value === 'string' && value.trim().length < 2)) {
+          return 'Player name is required';
+        }
+        break;
+      case 'age':
+        if (typeof value === 'number' && (value < 18 || value > 45)) {
+          return 'Age must be 18-45';
+        }
+        break;
+      case 'war_3yr':
+        if (typeof value === 'number' && (value < -5 || value > 15)) {
+          return 'WAR should be -5 to 15';
+        }
+        break;
+      case 'avg_3yr':
+        if (value && typeof value === 'number' && (value < 0.100 || value > 0.400)) {
+          return 'AVG should be .100-.400';
+        }
+        break;
+      case 'obp_3yr':
+        if (value && typeof value === 'number' && (value < 0.150 || value > 0.550)) {
+          return 'OBP should be .150-.550';
+        }
+        break;
+      case 'slg_3yr':
+        if (value && typeof value === 'number' && (value < 0.200 || value > 0.800)) {
+          return 'SLG should be .200-.800';
+        }
+        break;
+      case 'era_3yr':
+        if (value && typeof value === 'number' && (value < 0 || value > 10)) {
+          return 'ERA should be 0-10';
+        }
+        break;
+      case 'fip_3yr':
+        if (value && typeof value === 'number' && (value < 0 || value > 10)) {
+          return 'FIP should be 0-10';
+        }
+        break;
+    }
+    return undefined;
+  };
+
+  // Validate all fields
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {};
+    Object.entries(formData).forEach(([key, value]) => {
+      const error = validateField(key, value);
+      if (error) {
+        newErrors[key as keyof ValidationErrors] = error;
+      }
+    });
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle field blur for inline validation
+  const handleBlur = (name: string) => {
+    setTouched(prev => new Set(prev).add(name));
+    const error = validateField(name, formData[name as keyof PredictionRequest]);
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
+
+  // Clear form
+  const handleClear = () => {
+    setFormData(defaultFormData);
+    setSearchQuery('');
+    setSelectedPlayer(null);
+    setIsProspect(false);
+    setErrors({});
+    setTouched(new Set());
+    onClear?.();
+  };
 
   const isPitcherPosition = isPitcher(formData.position);
 
@@ -165,6 +264,11 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate before submitting
+    if (!validateForm()) {
+      return;
+    }
+
     // Clean up data based on position type
     const cleanedData = { ...formData };
     if (isPitcherPosition) {
@@ -218,9 +322,11 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
             name="name"
             value={searchQuery || formData.name}
             onChange={handleNameInputChange}
+            onBlur={() => handleBlur('name')}
             placeholder="Search for a player..."
             autoComplete="off"
             required
+            className={touched.has('name') && errors.name ? 'border-destructive' : ''}
           />
           {isSearching && (
             <div className="absolute right-3 top-9">
@@ -258,13 +364,15 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
               ))}
             </div>
           )}
-          {selectedPlayer && (
-            <p className={`text-xs mt-1 ${isProspect ? 'text-blue-600' : 'text-green-600'}`}>
+          {touched.has('name') && errors.name ? (
+            <p className="text-xs text-destructive">{errors.name}</p>
+          ) : selectedPlayer ? (
+            <p className={`text-xs ${isProspect ? 'text-blue-600' : 'text-green-600'}`}>
               {isProspect
                 ? 'Stats auto-filled from FanGraphs (pre-FA player)'
                 : 'Stats auto-filled from contract database'}
             </p>
-          )}
+          ) : null}
         </div>
 
         <div className="space-y-2">
@@ -291,10 +399,15 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
             name="age"
             value={formData.age}
             onChange={handleChange}
+            onBlur={() => handleBlur('age')}
             min={18}
             max={45}
             required
+            className={touched.has('age') && errors.age ? 'border-destructive' : ''}
           />
+          {touched.has('age') && errors.age && (
+            <p className="text-xs text-destructive">{errors.age}</p>
+          )}
         </div>
       </div>
 
@@ -310,9 +423,14 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
               name="war_3yr"
               value={formData.war_3yr}
               onChange={handleChange}
+              onBlur={() => handleBlur('war_3yr')}
               step="0.1"
               required
+              className={touched.has('war_3yr') && errors.war_3yr ? 'border-destructive' : ''}
             />
+            {touched.has('war_3yr') && errors.war_3yr && (
+              <p className="text-xs text-destructive">{errors.war_3yr}</p>
+            )}
           </div>
 
           {isPitcherPosition ? (
@@ -676,10 +794,21 @@ export default function PredictionForm({ onSubmit, isLoading }: PredictionFormPr
         </div>
       )}
 
-      {/* Submit Button */}
-      <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-        {isLoading ? 'Predicting...' : 'Predict Contract Value'}
-      </Button>
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        <Button type="submit" className="flex-1" size="lg" disabled={isLoading}>
+          {isLoading ? 'Predicting...' : 'Predict Contract Value'}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          onClick={handleClear}
+          disabled={isLoading}
+        >
+          Clear
+        </Button>
+      </div>
     </form>
   );
 }

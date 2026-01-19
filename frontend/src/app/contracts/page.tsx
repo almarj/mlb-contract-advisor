@@ -110,6 +110,38 @@ export default function ContractsPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Stats Summary - Now at top */}
+        {summary && (
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-primary">{summary.total_contracts}</p>
+                <p className="text-sm text-muted-foreground">Total Contracts</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-green-600">{summary.year_min}-{summary.year_max}</p>
+                <p className="text-sm text-muted-foreground">Years Covered</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-purple-600">{summary.unique_positions}</p>
+                <p className="text-sm text-muted-foreground">Positions</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-orange-600">
+                  {formatAAV(summary.aav_min)} - {formatAAV(summary.aav_max)}
+                </p>
+                <p className="text-sm text-muted-foreground">AAV Range</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Historical Contracts Database</CardTitle>
@@ -265,38 +297,6 @@ export default function ContractsPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Stats Summary */}
-        {summary && (
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-primary">{summary.total_contracts}</p>
-                <p className="text-sm text-muted-foreground">Total Contracts</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-green-600">{summary.year_min}-{summary.year_max}</p>
-                <p className="text-sm text-muted-foreground">Years Covered</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-purple-600">{summary.unique_positions}</p>
-                <p className="text-sm text-muted-foreground">Positions</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-orange-600">
-                  {formatAAV(summary.aav_min)} - {formatAAV(summary.aav_max)}
-                </p>
-                <p className="text-sm text-muted-foreground">AAV Range</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </main>
 
       {/* Footer */}
