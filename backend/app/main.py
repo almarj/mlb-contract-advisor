@@ -123,6 +123,36 @@ async def root():
     }
 
 
+@app.get("/test-predict", tags=["Debug"])
+async def test_predict():
+    """Test prediction with hardcoded values."""
+    from app.models.schemas import PredictionRequest
+
+    try:
+        request = PredictionRequest(
+            name="Test Player",
+            position="1B",
+            age=30,
+            war_3yr=3.0,
+            wrc_plus_3yr=120,
+            avg_3yr=0.280,
+        )
+
+        result = prediction_service.predict(request)
+        return {
+            "success": True,
+            "predicted_aav": result['predicted_aav'],
+            "predicted_length": result['predicted_length'],
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+        }
+
+
 @app.get("/debug", tags=["Debug"])
 async def debug_info():
     """Debug information about the deployment."""
