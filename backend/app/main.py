@@ -23,7 +23,7 @@ from app.config import (
     DATABASE_URL,
     RATE_LIMIT,
 )
-from app.models.database import init_db, SessionLocal
+from app.models.database import init_db, SessionLocal, engine
 from app.models.schemas import HealthResponse
 from app.services.prediction_service import prediction_service
 from app.api import predictions, players, contracts
@@ -120,6 +120,48 @@ async def root():
         "version": VERSION,
         "docs": "/docs",
         "health": "/health"
+    }
+
+
+@app.get("/debug", tags=["Debug"])
+async def debug_info():
+    """Debug information about the deployment."""
+    import sys
+    import sklearn
+    import numpy
+    import pandas
+    import pydantic
+
+    # Check if models have required features
+    model_info = {}
+    for name, model in prediction_service.models.items():
+        model_info[name] = {
+            "type": type(model).__name__,
+            "features_count": len(prediction_service.features.get(name, [])),
+        }
+
+    # Check database
+    db_info = {}
+    try:
+        db = SessionLocal()
+        from sqlalchemy import text, inspect
+        inspector = inspect(engine)
+        columns = [c['name'] for c in inspector.get_columns('contracts')]
+        db_info["contracts_columns"] = columns
+        db_info["has_recent_war_3yr"] = "recent_war_3yr" in columns
+        db.close()
+    except Exception as e:
+        db_info["error"] = str(e)
+
+    return {
+        "python_version": sys.version,
+        "sklearn_version": sklearn.__version__,
+        "numpy_version": numpy.__version__,
+        "pandas_version": pandas.__version__,
+        "pydantic_version": pydantic.__version__,
+        "models_loaded": prediction_service.is_loaded,
+        "models_info": model_info,
+        "database_info": db_info,
     }
 
 
