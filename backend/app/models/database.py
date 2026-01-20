@@ -182,3 +182,35 @@ def get_db():
 def init_db():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)
+
+
+def run_migrations():
+    """
+    Run simple schema migrations for new columns.
+    SQLAlchemy's create_all doesn't add columns to existing tables,
+    so we need to do this manually.
+    """
+    import logging
+    from sqlalchemy import text, inspect
+
+    logger = logging.getLogger(__name__)
+
+    with engine.connect() as conn:
+        inspector = inspect(engine)
+
+        # Check if contracts table exists
+        if 'contracts' not in inspector.get_table_names():
+            logger.info("Contracts table doesn't exist yet, skipping migrations")
+            return
+
+        # Get existing columns in contracts table
+        existing_columns = [col['name'] for col in inspector.get_columns('contracts')]
+
+        # Migration: Add signing_team column if it doesn't exist
+        if 'signing_team' not in existing_columns:
+            logger.info("Adding signing_team column to contracts table...")
+            conn.execute(text(
+                "ALTER TABLE contracts ADD COLUMN signing_team VARCHAR"
+            ))
+            conn.commit()
+            logger.info("signing_team column added successfully")

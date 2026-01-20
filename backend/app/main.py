@@ -23,7 +23,7 @@ from app.config import (
     DATABASE_URL,
     RATE_LIMIT,
 )
-from app.models.database import init_db, SessionLocal
+from app.models.database import init_db, SessionLocal, run_migrations
 from app.models.schemas import HealthResponse
 from app.services.prediction_service import prediction_service
 from app.api import predictions, players, contracts, chat
@@ -53,6 +53,10 @@ async def lifespan(app: FastAPI):
     # Initialize database
     logger.info("Initializing database...")
     init_db()
+
+    # Run any pending migrations
+    logger.info("Running database migrations...")
+    run_migrations()
 
     # Load ML models
     logger.info("Loading ML models...")
