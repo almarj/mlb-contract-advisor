@@ -189,28 +189,35 @@ def run_migrations():
     Run simple schema migrations for new columns.
     SQLAlchemy's create_all doesn't add columns to existing tables,
     so we need to do this manually.
+
+    This function is designed to be safe - if migrations fail, the app
+    will continue to start in degraded mode rather than crashing.
     """
     import logging
     from sqlalchemy import text, inspect
 
     logger = logging.getLogger(__name__)
 
-    with engine.connect() as conn:
-        inspector = inspect(engine)
+    try:
+        with engine.connect() as conn:
+            inspector = inspect(engine)
 
-        # Check if contracts table exists
-        if 'contracts' not in inspector.get_table_names():
-            logger.info("Contracts table doesn't exist yet, skipping migrations")
-            return
+            # Check if contracts table exists
+            if 'contracts' not in inspector.get_table_names():
+                logger.info("Contracts table doesn't exist yet, skipping migrations")
+                return
 
-        # Get existing columns in contracts table
-        existing_columns = [col['name'] for col in inspector.get_columns('contracts')]
+            # Get existing columns in contracts table
+            existing_columns = [col['name'] for col in inspector.get_columns('contracts')]
 
-        # Migration: Add signing_team column if it doesn't exist
-        if 'signing_team' not in existing_columns:
-            logger.info("Adding signing_team column to contracts table...")
-            conn.execute(text(
-                "ALTER TABLE contracts ADD COLUMN signing_team VARCHAR"
-            ))
-            conn.commit()
-            logger.info("signing_team column added successfully")
+            # Migration: Add signing_team column if it doesn't exist
+            if 'signing_team' not in existing_columns:
+                logger.info("Adding signing_team column to contracts table...")
+                conn.execute(text(
+                    "ALTER TABLE contracts ADD COLUMN signing_team VARCHAR"
+                ))
+                conn.commit()
+                logger.info("signing_team column added successfully")
+
+    except Exception as e:
+        logger.error(f"Migration failed (app will continue in degraded mode): {e}")

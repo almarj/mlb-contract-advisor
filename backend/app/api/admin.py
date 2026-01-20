@@ -5,14 +5,19 @@ import logging
 import secrets
 import subprocess
 import sys
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Request
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.config import ADMIN_SECRET, BASE_DIR
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+# Strict rate limiting for admin endpoints (5 requests per hour)
+limiter = Limiter(key_func=get_remote_address)
 
 
 class ReseedResponse(BaseModel):
@@ -21,7 +26,9 @@ class ReseedResponse(BaseModel):
 
 
 @router.post("/reseed", response_model=ReseedResponse)
+@limiter.limit("5/hour")
 async def reseed_database(
+    request: Request,
     x_admin_secret: str = Header(..., description="Admin secret key")
 ):
     """
