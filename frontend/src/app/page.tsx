@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -13,7 +13,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const HOW_IT_WORKS_KEY = 'mlb-contract-advisor-how-it-works-collapsed';
 
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const initialPlayer = searchParams.get('player') || '';
 
@@ -210,5 +210,17 @@ export default function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
