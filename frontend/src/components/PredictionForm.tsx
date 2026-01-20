@@ -229,35 +229,41 @@ export default function PredictionForm({ onSubmit, isLoading, onClear, initialPl
         estimatedAge = 28; // Default
       }
 
+      // Helper to round numbers for cleaner display
+      const round = (val: number | undefined | null, decimals: number): number | undefined => {
+        if (val === undefined || val === null) return undefined;
+        return Number(val.toFixed(decimals));
+      };
+
       setFormData({
         name: player.name,
         position: stats.position,
         age: Math.min(Math.max(estimatedAge, 18), 45), // Clamp between 18-45
-        war_3yr: stats.war_3yr ?? 3.0,
-        wrc_plus_3yr: stats.wrc_plus_3yr ?? undefined,
-        avg_3yr: stats.avg_3yr ?? undefined,
-        obp_3yr: stats.obp_3yr ?? undefined,
-        slg_3yr: stats.slg_3yr ?? undefined,
-        hr_3yr: stats.hr_3yr ?? undefined,
-        era_3yr: stats.era_3yr ?? undefined,
-        fip_3yr: stats.fip_3yr ?? undefined,
-        k_9_3yr: stats.k_9_3yr ?? undefined,
-        bb_9_3yr: stats.bb_9_3yr ?? undefined,
-        ip_3yr: stats.ip_3yr ?? undefined,
-        avg_exit_velo: stats.avg_exit_velo ?? undefined,
-        barrel_rate: stats.barrel_rate ?? undefined,
-        max_exit_velo: stats.max_exit_velo ?? undefined,
-        hard_hit_pct: stats.hard_hit_pct ?? undefined,
-        chase_rate: stats.chase_rate ?? undefined,
-        whiff_rate: stats.whiff_rate ?? undefined,
+        war_3yr: round(stats.war_3yr, 1) ?? 3.0,
+        wrc_plus_3yr: round(stats.wrc_plus_3yr, 0) ?? undefined,
+        avg_3yr: round(stats.avg_3yr, 3) ?? undefined,
+        obp_3yr: round(stats.obp_3yr, 3) ?? undefined,
+        slg_3yr: round(stats.slg_3yr, 3) ?? undefined,
+        hr_3yr: round(stats.hr_3yr, 0) ?? undefined,
+        era_3yr: round(stats.era_3yr, 2) ?? undefined,
+        fip_3yr: round(stats.fip_3yr, 2) ?? undefined,
+        k_9_3yr: round(stats.k_9_3yr, 1) ?? undefined,
+        bb_9_3yr: round(stats.bb_9_3yr, 1) ?? undefined,
+        ip_3yr: round(stats.ip_3yr, 1) ?? undefined,
+        avg_exit_velo: round(stats.avg_exit_velo, 1) ?? undefined,
+        barrel_rate: round(stats.barrel_rate, 1) ?? undefined,
+        max_exit_velo: round(stats.max_exit_velo, 1) ?? undefined,
+        hard_hit_pct: round(stats.hard_hit_pct, 1) ?? undefined,
+        chase_rate: round(stats.chase_rate, 0) ?? undefined,
+        whiff_rate: round(stats.whiff_rate, 0) ?? undefined,
         // Pitcher Statcast
-        fb_velocity: stats.fb_velocity ?? undefined,
-        fb_spin: stats.fb_spin ?? undefined,
-        xera: stats.xera ?? undefined,
-        k_percent: stats.k_percent ?? undefined,
-        bb_percent: stats.bb_percent ?? undefined,
-        whiff_percent_pitcher: stats.whiff_percent_pitcher ?? undefined,
-        chase_percent_pitcher: stats.chase_percent_pitcher ?? undefined,
+        fb_velocity: round(stats.fb_velocity, 0) ?? undefined,
+        fb_spin: round(stats.fb_spin, 0) ?? undefined,
+        xera: round(stats.xera, 0) ?? undefined,
+        k_percent: round(stats.k_percent, 0) ?? undefined,
+        bb_percent: round(stats.bb_percent, 0) ?? undefined,
+        whiff_percent_pitcher: round(stats.whiff_percent_pitcher, 0) ?? undefined,
+        chase_percent_pitcher: round(stats.chase_percent_pitcher, 0) ?? undefined,
       });
     } else {
       // Just update name and position
