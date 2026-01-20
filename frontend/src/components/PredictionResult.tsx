@@ -11,6 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface PredictionResultProps {
   prediction: PredictionResponse;
@@ -143,6 +149,7 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
   };
 
   return (
+    <TooltipProvider>
     <div className="space-y-6">
       {/* Contract Assessment (for signed players) */}
       {prediction.actual_aav !== null ? (
@@ -373,9 +380,16 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
                       <div className="flex items-center gap-2">
                         {comp.name}
                         {comp.is_extension && (
-                          <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
-                            Extension
-                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200 cursor-help">
+                                Extension
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">Pre-free agency extension signed before reaching open market. These typically have below-market AAVs.</p>
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     </TableCell>
@@ -430,9 +444,16 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
                         <div className="flex items-center gap-2">
                           {comp.name}
                           {comp.is_extension && (
-                            <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
-                              Extension
-                            </Badge>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200 cursor-help">
+                                  Extension
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">Pre-free agency extension signed before reaching open market. These typically have below-market AAVs.</p>
+                              </TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                       </TableCell>
@@ -493,6 +514,7 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
         Model accuracy: {prediction.model_accuracy.toFixed(1)}% within $5M
       </p>
     </div>
+    </TooltipProvider>
   );
 }
 

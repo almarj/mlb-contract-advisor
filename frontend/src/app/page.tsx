@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import PredictionForm from '@/components/PredictionForm';
@@ -13,6 +14,9 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 const HOW_IT_WORKS_KEY = 'mlb-contract-advisor-how-it-works-collapsed';
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const initialPlayer = searchParams.get('player') || '';
+
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -159,6 +163,7 @@ export default function Home() {
               <PredictionForm
                 onSubmit={handleSubmit}
                 isLoading={isLoading}
+                initialPlayer={initialPlayer}
               />
               {error && (
                 <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">

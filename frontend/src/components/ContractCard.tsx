@@ -1,10 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import useSWR from 'swr';
 import { ContractRecord, formatAAV, getContractPlayerStats, isPitcher, BatterYearlyStats, PitcherYearlyStats } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 
 interface ContractCardProps {
   contract: ContractRecord;
@@ -55,11 +56,20 @@ export function ContractCard({ contract, isExpanded, onToggle }: ContractCardPro
             <span>•</span>
             <span>{contract.war_3yr?.toFixed(1) ?? '-'} WAR</span>
           </div>
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          )}
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/?player=${encodeURIComponent(contract.player_name)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              View <ExternalLink className="h-3 w-3" />
+            </Link>
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
         </div>
 
         {/* Expanded stats section */}

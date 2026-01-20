@@ -20,6 +20,7 @@ interface PredictionFormProps {
   onSubmit: (data: PredictionRequest) => void;
   isLoading: boolean;
   onClear?: () => void;
+  initialPlayer?: string;
 }
 
 interface ValidationErrors {
@@ -50,7 +51,7 @@ const defaultFormData: PredictionRequest = {
   hr_3yr: 25,
 };
 
-export default function PredictionForm({ onSubmit, isLoading, onClear }: PredictionFormProps) {
+export default function PredictionForm({ onSubmit, isLoading, onClear, initialPlayer }: PredictionFormProps) {
   const [formData, setFormData] = useState<PredictionRequest>(defaultFormData);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -178,6 +179,32 @@ export default function PredictionForm({ onSubmit, isLoading, onClear }: Predict
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Auto-search when initialPlayer is provided (from contracts page link)
+  useEffect(() => {
+    if (initialPlayer && initialPlayer.length >= 2) {
+      setSearchQuery(initialPlayer);
+      // Trigger search and auto-select first matching result
+      const autoSearch = async () => {
+        setIsSearching(true);
+        try {
+          const results = await searchPlayers(initialPlayer);
+          if (results.length > 0) {
+            // Find exact match or use first result
+            const exactMatch = results.find(r => r.name.toLowerCase() === initialPlayer.toLowerCase());
+            const playerToSelect = exactMatch || results[0];
+            handlePlayerSelect(playerToSelect);
+          }
+        } catch (error) {
+          console.error('Auto-search failed:', error);
+        } finally {
+          setIsSearching(false);
+        }
+      };
+      autoSearch();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPlayer]);
 
   const handlePlayerSelect = (player: PlayerSearchResult) => {
     setSearchQuery(player.name);

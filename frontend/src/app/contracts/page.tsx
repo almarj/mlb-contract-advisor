@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ChevronDown, ChevronRight, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, X, ExternalLink } from 'lucide-react';
 import { ExpandableStatsRow } from '@/components/ExpandableStatsRow';
 import { ContractCard } from '@/components/ContractCard';
 import {
@@ -369,6 +369,7 @@ export default function ContractsPage() {
                               </TooltipContent>
                             </Tooltip>
                           </TableHead>
+                          <TableHead className="text-center w-[100px]">Analysis</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -399,6 +400,15 @@ export default function ContractsPage() {
                               <TableCell className="text-right">{contract.length}</TableCell>
                               <TableCell className="text-right">
                                 {contract.war_3yr?.toFixed(1) ?? '-'}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Link
+                                  href={`/?player=${encodeURIComponent(contract.player_name)}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                >
+                                  View <ExternalLink className="h-3 w-3" />
+                                </Link>
                               </TableCell>
                             </TableRow>
                             <ExpandableStatsRow
