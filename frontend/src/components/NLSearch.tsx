@@ -16,7 +16,7 @@ export function NLSearch({
   variant = 'inline',
   onSubmit,
   isLoading,
-  placeholder = 'Ask about any player... (e.g., "What would Juan Soto be worth?")'
+  placeholder = 'Ask about any player...'
 }: NLSearchProps) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -87,30 +87,28 @@ export function NLSearch({
 
       {/* Example queries - only show for inline variant when not loading */}
       {variant === 'inline' && !isLoading && !query && (
-        <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span>Try:</span>
           <button
             type="button"
             onClick={() => setQuery('What would Juan Soto be worth?')}
             className="hover:text-foreground hover:underline"
           >
-            &quot;Juan Soto&quot;
+            Juan Soto
           </button>
-          <span>|</span>
           <button
             type="button"
             onClick={() => setQuery('How much should Shohei Ohtani get?')}
             className="hover:text-foreground hover:underline"
           >
-            &quot;Shohei Ohtani&quot;
+            Shohei Ohtani
           </button>
-          <span>|</span>
           <button
             type="button"
             onClick={() => setQuery('What is Mookie Betts worth?')}
             className="hover:text-foreground hover:underline"
           >
-            &quot;Mookie Betts&quot;
+            Mookie Betts
           </button>
         </div>
       )}

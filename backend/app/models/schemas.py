@@ -215,6 +215,7 @@ class ContractRecord(BaseModel):
     id: int
     player_name: str
     position: str
+    signing_team: Optional[str] = None
     year_signed: int
     age_at_signing: int
     aav: float

@@ -92,24 +92,24 @@ export function NLResponse({
 
         {/* Prediction summary - Two-way player version */}
         {hasPrediction && response.is_two_way_player && response.two_way_predictions && (
-          <div className="bg-primary/5 rounded-lg p-4 mb-4">
+          <div className="bg-primary/5 rounded-lg p-3 sm:p-4 mb-4">
             <div className="mb-3">
               <Badge variant="secondary" className="text-xs mb-2">
-                ⚾ Two-Way Player
+                Two-Way Player
               </Badge>
             </div>
             {/* Individual role predictions */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4">
               {response.two_way_predictions.map((pred) => (
-                <div key={pred.role} className="bg-background/50 rounded-lg p-3 text-center">
+                <div key={pred.role} className="bg-background/50 rounded-lg p-2 sm:p-3 text-center">
                   <p className="text-xs font-medium text-muted-foreground mb-1">
                     As {pred.role}
                   </p>
-                  <p className="text-xl font-bold font-mono text-primary">
+                  <p className="text-lg sm:text-xl font-bold font-mono text-primary">
                     ${pred.predicted_aav.toFixed(1)}M
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {pred.predicted_length} yrs • {pred.confidence_score.toFixed(0)}% conf
+                    {pred.predicted_length}yr • {pred.confidence_score.toFixed(0)}%
                   </p>
                 </div>
               ))}
@@ -117,7 +117,7 @@ export function NLResponse({
             {/* Combined value */}
             <div className="border-t pt-3 text-center">
               <p className="text-xs text-muted-foreground mb-1">Combined Value</p>
-              <p className="text-2xl font-bold font-mono text-primary">
+              <p className="text-xl sm:text-2xl font-bold font-mono text-primary">
                 ${response.combined_aav?.toFixed(1)}M
               </p>
               <p className="text-xs text-muted-foreground">per year</p>
@@ -127,22 +127,22 @@ export function NLResponse({
 
         {/* Prediction summary - Standard player version */}
         {hasPrediction && !response.is_two_way_player && (
-          <div className="bg-primary/5 rounded-lg p-4 mb-4">
-            <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="bg-primary/5 rounded-lg p-3 sm:p-4 mb-4">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
               <div>
-                <p className="text-2xl font-bold font-mono text-primary">
+                <p className="text-lg sm:text-2xl font-bold font-mono text-primary">
                   {formatAAV(prediction.predicted_aav)}
                 </p>
                 <p className="text-xs text-muted-foreground">Predicted AAV</p>
               </div>
               <div>
-                <p className="text-2xl font-bold">
+                <p className="text-lg sm:text-2xl font-bold">
                   {prediction.predicted_length}
                 </p>
                 <p className="text-xs text-muted-foreground">Years</p>
               </div>
               <div>
-                <p className="text-2xl font-bold">
+                <p className="text-lg sm:text-2xl font-bold">
                   {prediction.confidence_score.toFixed(0)}%
                 </p>
                 <p className="text-xs text-muted-foreground">Confidence</p>
@@ -192,15 +192,22 @@ export function NLResponse({
               >
                 {action.action_type === ChatActionType.VIEW_PREDICTION && (
                   <>
-                    View Full Prediction
+                    <span className="hidden sm:inline">View Full Prediction</span>
+                    <span className="sm:hidden">Full Details</span>
                     <ExternalLink className="h-3 w-3 ml-1" />
                   </>
                 )}
                 {action.action_type === ChatActionType.COMPARE_PLAYERS && (
-                  'Compare Players'
+                  <>
+                    <span className="hidden sm:inline">Compare Players</span>
+                    <span className="sm:hidden">Compare</span>
+                  </>
                 )}
                 {action.action_type === ChatActionType.SHOW_CONTRACTS && (
-                  'Browse Contracts'
+                  <>
+                    <span className="hidden sm:inline">Browse Contracts</span>
+                    <span className="sm:hidden">Contracts</span>
+                  </>
                 )}
               </Button>
             ))}
