@@ -9,3 +9,4 @@ numpy==2.0.2
 scikit-learn==1.6.1
 slowapi==0.1.9
 pybaseball==2.2.7
+anthropic==0.43.0

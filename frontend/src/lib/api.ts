@@ -190,6 +190,34 @@ export interface ContractSummary {
   unique_positions: number;
 }
 
+// Chat / Natural Language Query types
+export enum ChatActionType {
+  VIEW_PREDICTION = 'view_prediction',
+  COMPARE_PLAYERS = 'compare_players',
+  SHOW_CONTRACTS = 'show_contracts',
+}
+
+export interface ChatAction {
+  action_type: ChatActionType;
+  target_player: string | null;
+  parameters: Record<string, string>;
+}
+
+export interface ChatRequest {
+  query: string;
+}
+
+export interface ChatResponse {
+  response: string;
+  prediction: PredictionResponse | null;
+  actions: ChatAction[];
+  player_found: boolean;
+  player_name: string | null;
+  suggestions: string[];
+  claude_available: boolean;
+  used_fallback: boolean;
+}
+
 // API Functions
 export async function createPrediction(data: PredictionRequest): Promise<PredictionResponse> {
   const response = await fetch(`${API_BASE_URL}/api/v1/predictions`, {
@@ -274,6 +302,23 @@ export async function getContractsSummary(): Promise<ContractSummary> {
 
   if (!response.ok) {
     throw new Error('Failed to fetch contracts summary');
+  }
+
+  return response.json();
+}
+
+export async function sendChatQuery(query: string): Promise<ChatResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/chat/query`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Chat query failed' }));
+    throw new Error(error.detail || 'Chat query failed');
   }
 
   return response.json();

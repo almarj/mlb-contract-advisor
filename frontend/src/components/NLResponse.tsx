@@ -1,0 +1,187 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { ChatResponse, ChatActionType, formatAAV } from '@/lib/api';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ExternalLink, AlertCircle, Sparkles } from 'lucide-react';
+
+interface NLResponseProps {
+  response: ChatResponse;
+  displayMode?: 'card' | 'chat-bubble';
+  onClear?: () => void;
+}
+
+export function NLResponse({
+  response,
+  displayMode = 'card',
+  onClear
+}: NLResponseProps) {
+  const router = useRouter();
+
+  const handleAction = (action: typeof response.actions[0]) => {
+    switch (action.action_type) {
+      case ChatActionType.VIEW_PREDICTION:
+        if (action.target_player) {
+          router.push(`/?player=${encodeURIComponent(action.target_player)}`);
+        }
+        break;
+      case ChatActionType.COMPARE_PLAYERS:
+        const { player1, player2 } = action.parameters;
+        if (player1 && player2) {
+          router.push(`/compare?p1=${encodeURIComponent(player1)}&p2=${encodeURIComponent(player2)}`);
+        } else {
+          router.push('/compare');
+        }
+        break;
+      case ChatActionType.SHOW_CONTRACTS:
+        const params = new URLSearchParams(action.parameters);
+        router.push(`/contracts?${params.toString()}`);
+        break;
+    }
+  };
+
+  // Parse the response text to remove action markers for display
+  const cleanResponse = response.response.replace(/\[ACTION:[^\]]+\]/g, '').trim();
+
+  // Get prediction summary if available
+  const prediction = response.prediction;
+  const hasPrediction = prediction && response.player_found;
+
+  if (displayMode === 'chat-bubble') {
+    // Future: Chat bubble style for full chat panel
+    return (
+      <div className="bg-muted/50 rounded-lg p-4 max-w-[80%]">
+        <p className="text-sm whitespace-pre-wrap">{cleanResponse}</p>
+      </div>
+    );
+  }
+
+  // Card display mode (default)
+  return (
+    <Card className="border-primary/20 bg-gradient-to-br from-background to-muted/30">
+      <CardContent className="p-4 sm:p-6">
+        {/* Header with player info */}
+        {hasPrediction && (
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">
+                {response.player_name}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {prediction.position}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {response.used_fallback && (
+                <Badge variant="outline" className="text-xs">
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  Limited
+                </Badge>
+              )}
+              {!response.used_fallback && (
+                <Badge variant="secondary" className="text-xs">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  AI Analysis
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Prediction summary */}
+        {hasPrediction && (
+          <div className="bg-primary/5 rounded-lg p-4 mb-4">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold font-mono text-primary">
+                  {formatAAV(prediction.predicted_aav)}
+                </p>
+                <p className="text-xs text-muted-foreground">Predicted AAV</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">
+                  {prediction.predicted_length}
+                </p>
+                <p className="text-xs text-muted-foreground">Years</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">
+                  {prediction.confidence_score.toFixed(0)}%
+                </p>
+                <p className="text-xs text-muted-foreground">Confidence</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI explanation */}
+        <div className="prose prose-sm max-w-none">
+          <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+            {cleanResponse}
+          </p>
+        </div>
+
+        {/* Suggestions if player not found */}
+        {!response.player_found && response.suggestions.length > 0 && (
+          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <p className="text-sm font-medium mb-2">Did you mean:</p>
+            <div className="flex flex-wrap gap-2">
+              {response.suggestions.map((suggestion) => (
+                <Button
+                  key={suggestion}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Trigger a new search with this player
+                    router.push(`/?player=${encodeURIComponent(suggestion)}`);
+                  }}
+                >
+                  {suggestion}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        {response.actions.length > 0 && (
+          <div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
+            {response.actions.map((action, index) => (
+              <Button
+                key={index}
+                variant={index === 0 ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleAction(action)}
+              >
+                {action.action_type === ChatActionType.VIEW_PREDICTION && (
+                  <>
+                    View Full Prediction
+                    <ExternalLink className="h-3 w-3 ml-1" />
+                  </>
+                )}
+                {action.action_type === ChatActionType.COMPARE_PLAYERS && (
+                  'Compare Players'
+                )}
+                {action.action_type === ChatActionType.SHOW_CONTRACTS && (
+                  'Browse Contracts'
+                )}
+              </Button>
+            ))}
+            {onClear && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClear}
+                className="ml-auto"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

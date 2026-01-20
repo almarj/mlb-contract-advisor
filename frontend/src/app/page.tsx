@@ -6,7 +6,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import PredictionForm from '@/components/PredictionForm';
 import PredictionResult from '@/components/PredictionResult';
-import { PredictionResponse, PredictionRequest, createPrediction } from '@/lib/api';
+import { NLSearch } from '@/components/NLSearch';
+import { NLResponse } from '@/components/NLResponse';
+import { PredictionResponse, PredictionRequest, createPrediction, ChatResponse, sendChatQuery } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -22,6 +24,11 @@ function HomeContent() {
   const [error, setError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [howItWorksCollapsed, setHowItWorksCollapsed] = useState(false);
+
+  // Natural language search state
+  const [chatResponse, setChatResponse] = useState<ChatResponse | null>(null);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
 
   // Load collapsed state from localStorage on mount
   useEffect(() => {
@@ -49,6 +56,25 @@ function HomeContent() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle natural language query
+  const handleChatQuery = async (query: string) => {
+    setChatLoading(true);
+    setChatError(null);
+    try {
+      const result = await sendChatQuery(query);
+      setChatResponse(result);
+    } catch (err) {
+      setChatError(err instanceof Error ? err.message : 'Query failed');
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const handleClearChat = () => {
+    setChatResponse(null);
+    setChatError(null);
   };
 
   return (
@@ -81,6 +107,29 @@ function HomeContent() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Natural Language Search - Hidden on mobile */}
+        <div className="hidden md:block mb-8" role="search" aria-label="Quick player search">
+          <NLSearch
+            variant="inline"
+            onSubmit={handleChatQuery}
+            isLoading={chatLoading}
+          />
+          {chatError && (
+            <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+              {chatError}
+            </div>
+          )}
+          {chatResponse && (
+            <div className="mt-4" aria-live="polite">
+              <NLResponse
+                response={chatResponse}
+                displayMode="card"
+                onClear={handleClearChat}
+              />
+            </div>
+          )}
+        </div>
+
         {/* How It Works Section - Collapsible */}
         <Card className="mb-8">
           <CardHeader

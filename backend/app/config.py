@@ -3,6 +3,10 @@ Application configuration settings.
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
 
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent  # backend folder
@@ -19,6 +23,12 @@ VERSION = "1.0.0"
 
 # Rate limiting
 RATE_LIMIT = "100/hour"
+CHAT_RATE_LIMIT = "50/hour"  # Stricter for Claude API calls
+
+# Anthropic Claude API
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
+CLAUDE_TIMEOUT = int(os.getenv("CLAUDE_TIMEOUT", "25"))  # seconds
 
 # CORS - Configure via ALLOWED_ORIGINS env var (comma-separated) or use defaults
 # For Railway: Set ALLOWED_ORIGINS to your frontend Railway URL

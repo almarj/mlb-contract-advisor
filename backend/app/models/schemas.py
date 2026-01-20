@@ -1,6 +1,7 @@
 """
 Pydantic schemas for request/response validation.
 """
+from enum import Enum
 from typing import Optional, List
 from pydantic import BaseModel, Field
 
@@ -300,3 +301,63 @@ class HealthResponse(BaseModel):
     version: str
     models_loaded: bool
     database_connected: bool
+
+
+# ============================================================================
+# Chat / Natural Language Query Schemas
+# ============================================================================
+
+class ChatActionType(str, Enum):
+    """Types of actions that can be suggested in chat responses."""
+    VIEW_PREDICTION = "view_prediction"
+    COMPARE_PLAYERS = "compare_players"
+    SHOW_CONTRACTS = "show_contracts"
+
+
+class ChatAction(BaseModel):
+    """An action button suggested in a chat response."""
+    action_type: ChatActionType
+    target_player: Optional[str] = None
+    parameters: dict = Field(default_factory=dict)
+
+
+class ChatRequest(BaseModel):
+    """Request body for chat/natural language query."""
+    query: str = Field(
+        ...,
+        min_length=3,
+        max_length=500,
+        description="Natural language query about a player or contract"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "query": "What would Juan Soto be worth?"
+            }
+        }
+
+
+class ChatResponse(BaseModel):
+    """Response for chat/natural language query."""
+    response: str = Field(..., description="Claude's explanation of the prediction")
+    prediction: Optional[PredictionResponse] = Field(
+        None,
+        description="Full prediction if a player was identified"
+    )
+    actions: List[ChatAction] = Field(
+        default_factory=list,
+        description="Suggested action buttons"
+    )
+
+    # Status fields
+    player_found: bool = Field(..., description="Whether a player was identified in the query")
+    player_name: Optional[str] = Field(None, description="Name of identified player")
+    suggestions: List[str] = Field(
+        default_factory=list,
+        description="Alternative player suggestions if ambiguous"
+    )
+
+    # Claude availability
+    claude_available: bool = Field(True, description="Whether Claude API responded")
+    used_fallback: bool = Field(False, description="Whether fallback template was used")
