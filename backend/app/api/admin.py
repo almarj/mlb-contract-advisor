@@ -2,6 +2,7 @@
 Admin API endpoints - Protected operations like reseeding the database.
 """
 import logging
+import secrets
 import subprocess
 import sys
 from fastapi import APIRouter, HTTPException, Header
@@ -35,7 +36,7 @@ async def reseed_database(
             detail="Admin operations not configured. Set ADMIN_SECRET env var."
         )
 
-    if x_admin_secret != ADMIN_SECRET:
+    if not secrets.compare_digest(x_admin_secret, ADMIN_SECRET):
         raise HTTPException(status_code=403, detail="Invalid admin secret")
 
     logger.info("Starting database reseed...")
@@ -62,7 +63,7 @@ async def reseed_database(
             logger.error(f"Reseed failed: {result.stderr}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Reseed failed: {result.stderr[:500]}"
+                detail="Reseed failed. Check server logs for details."
             )
 
         logger.info("Database reseed completed successfully")
