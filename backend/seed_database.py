@@ -304,6 +304,7 @@ def seed_contracts(db, df, batting_df=None, pitching_df=None):
         contract = Contract(
             player_name=player_name,
             position=position,
+            signing_team=str(row['signing_team']) if pd.notna(row.get('signing_team')) else None,
             year_signed=int(row['year_signed']),
             age_at_signing=age,
             aav=float(row['AAV']),

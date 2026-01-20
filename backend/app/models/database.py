@@ -19,6 +19,7 @@ class Contract(Base):
     id = Column(Integer, primary_key=True, index=True)
     player_name = Column(String, index=True)
     position = Column(String, index=True)
+    signing_team = Column(String, nullable=True, index=True)
     year_signed = Column(Integer, index=True)
     age_at_signing = Column(Integer)
     aav = Column(Float)

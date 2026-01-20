@@ -215,6 +215,7 @@ async def _get_prediction_for_player(
         return PredictionResponse(
             player_name=contract.player_name,
             position=contract.position,
+            signing_team=contract.signing_team,
             predicted_aav=result['predicted_aav'] * 1_000_000,
             predicted_aav_low=result['predicted_aav_low'] * 1_000_000,
             predicted_aav_high=result['predicted_aav_high'] * 1_000_000,

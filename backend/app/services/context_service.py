@@ -161,7 +161,9 @@ class ContextService:
         aav_low_millions = prediction.predicted_aav_low / 1_000_000
         aav_high_millions = prediction.predicted_aav_high / 1_000_000
 
-        context = f"""Player: {player_name} ({position})
+        # Include signing team if available
+        team_info = f", signed by {prediction.signing_team}" if prediction.signing_team else ""
+        context = f"""Player: {player_name} ({position}{team_info})
 
 PREDICTION (from our ML model - use these exact numbers):
 - Predicted AAV: ${aav_millions:.1f}M per year
@@ -207,7 +209,8 @@ ACTUAL CONTRACT (player is signed):
             for comp in comparables[:3]:
                 comp_aav_millions = comp.aav / 1_000_000 if comp.aav > 1000 else comp.aav
                 ext_note = " (pre-FA extension)" if comp.is_extension else ""
-                context += f"\n- {comp.name} ({comp.position}): ${comp_aav_millions:.1f}M/{comp.length}yr in {comp.year_signed}, {comp.war_3yr:.1f} WAR, {comp.similarity_score:.0f}% similar{ext_note}"
+                team_note = f" with {comp.signing_team}" if comp.signing_team else ""
+                context += f"\n- {comp.name} ({comp.position}): ${comp_aav_millions:.1f}M/{comp.length}yr{team_note} in {comp.year_signed}, {comp.war_3yr:.1f} WAR, {comp.similarity_score:.0f}% similar{ext_note}"
 
         return context
 

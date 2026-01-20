@@ -107,8 +107,8 @@ function HomeContent() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Natural Language Search - Hidden on mobile */}
-        <div className="hidden md:block mb-8" role="search" aria-label="Quick player search">
+        {/* Natural Language Search */}
+        <div className="mb-8" role="search" aria-label="Quick player search">
           <NLSearch
             variant="inline"
             onSubmit={handleChatQuery}

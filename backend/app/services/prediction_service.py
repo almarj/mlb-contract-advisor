@@ -374,6 +374,7 @@ class PredictionService:
             comparables.append(ComparablePlayer(
                 name=row['player_name'],
                 position=row['position'],
+                signing_team=row.get('signing_team'),
                 year_signed=int(row['year_signed']),
                 age_at_signing=age,
                 aav=row['AAV'],

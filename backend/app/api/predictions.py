@@ -105,6 +105,7 @@ def find_comparables_by_recent_performance(
         comparables.append(ComparablePlayer(
             name=contract.player_name,
             position=contract.position,
+            signing_team=contract.signing_team,
             year_signed=contract.year_signed,
             age_at_signing=age,
             aav=contract.aav,
@@ -247,6 +248,7 @@ async def create_prediction(request_obj: Request, request: PredictionRequest, db
         return PredictionResponse(
             player_name=request.name,
             position=request.position,
+            signing_team=contract.signing_team if contract else None,
             predicted_aav=result['predicted_aav'] * 1_000_000,  # Convert to dollars
             predicted_aav_low=result['predicted_aav_low'] * 1_000_000,
             predicted_aav_high=result['predicted_aav_high'] * 1_000_000,

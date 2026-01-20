@@ -32,12 +32,18 @@ try:
     contracts = contracts.rename(columns={
         'Player': 'player_name',
         'Pos': 'position',
+        'Team                     Currently With': 'signing_team',
         'Age                     At Signing': 'age_at_signing',
         'Start': 'year_signed',
         'Yrs': 'length',
         'Value': 'total_value',
         'AAV': 'AAV'
     })
+
+    # Clean up the signing team (format is "NYM                  NYM" - extract first team code)
+    if 'signing_team' in contracts.columns:
+        contracts['signing_team'] = contracts['signing_team'].str.strip().str.split().str[0]
+        print(f"✓ Extracted signing team information")
     
     # Clean currency values (remove $ and commas)
     contracts['AAV'] = contracts['AAV'].str.replace('$', '', regex=False).str.replace(',', '', regex=False)
@@ -276,15 +282,16 @@ for idx, contract in contracts.iterrows():
         'player_name': player_name,
         'matched_fangraphs_name': matched_name,
         'position': position,
+        'signing_team': contract.get('signing_team', None),
         'year_signed': year_signed,
         'age_at_signing': contract['age_at_signing'],
         'AAV': contract['AAV'],
         'total_value': contract['total_value'],
         'length': contract['length'],
-        
+
         # FanGraphs 3-year averages
         **avg_stats,
-        
+
         # Statcast metrics
         **statcast_metrics
     }

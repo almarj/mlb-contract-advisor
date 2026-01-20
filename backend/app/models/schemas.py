@@ -76,6 +76,7 @@ class ComparablePlayer(BaseModel):
     """A comparable player from historical data."""
     name: str
     position: str
+    signing_team: Optional[str] = Field(None, description="Team that signed the player")
     year_signed: int
     age_at_signing: int
     aav: float
@@ -89,6 +90,7 @@ class PredictionResponse(BaseModel):
     """Response for contract prediction."""
     player_name: str
     position: str
+    signing_team: Optional[str] = Field(None, description="Team that signed the player (if contract exists)")
 
     # Predictions
     predicted_aav: float = Field(..., description="Predicted AAV in dollars")
