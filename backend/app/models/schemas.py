@@ -338,6 +338,14 @@ class ChatRequest(BaseModel):
         }
 
 
+class TwoWayPrediction(BaseModel):
+    """Prediction summary for a two-way player role."""
+    role: str = Field(..., description="Role (e.g., 'DH' or 'SP')")
+    predicted_aav: float = Field(..., description="Predicted AAV in millions")
+    predicted_length: float = Field(..., description="Predicted contract length")
+    confidence_score: float = Field(..., description="Confidence score 0-100")
+
+
 class ChatResponse(BaseModel):
     """Response for chat/natural language query."""
     response: str = Field(..., description="Claude's explanation of the prediction")
@@ -356,6 +364,17 @@ class ChatResponse(BaseModel):
     suggestions: List[str] = Field(
         default_factory=list,
         description="Alternative player suggestions if ambiguous"
+    )
+
+    # Two-way player fields
+    is_two_way_player: bool = Field(False, description="Whether player is a two-way player")
+    two_way_predictions: Optional[List[TwoWayPrediction]] = Field(
+        None,
+        description="Separate predictions for each role (batting/pitching)"
+    )
+    combined_aav: Optional[float] = Field(
+        None,
+        description="Combined AAV for two-way players in millions"
     )
 
     # Claude availability

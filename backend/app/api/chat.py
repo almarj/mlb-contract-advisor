@@ -16,6 +16,7 @@ from app.models.schemas import (
     ChatActionType,
     PredictionRequest,
     PredictionResponse,
+    TwoWayPrediction,
 )
 from app.services.claude_service import claude_service
 from app.services.context_service import context_service
@@ -104,15 +105,16 @@ async def process_chat_query(
     # Step 4: Build context and get Claude explanation
     # Check if this is a two-way player (like Ohtani)
     is_two_way = context_service.is_two_way_player(player_name, db)
+    two_way_predictions = None
+    combined_aav = None
 
     if is_two_way:
         # Get separate predictions for batting and pitching
-        two_way_context = await _build_two_way_context(
+        context, two_way_predictions, combined_aav = await _build_two_way_context(
             player_name,
             prediction_response,
             db
         )
-        context = two_way_context
     else:
         context = context_service.build_prediction_context(
             prediction_response,
@@ -152,6 +154,9 @@ async def process_chat_query(
         player_found=True,
         player_name=player_name,
         suggestions=suggestions,
+        is_two_way_player=is_two_way,
+        two_way_predictions=two_way_predictions,
+        combined_aav=combined_aav,
         claude_available=claude_result["success"],
         used_fallback=claude_result["used_fallback"]
     )
@@ -321,7 +326,7 @@ async def _build_two_way_context(
     player_name: str,
     primary_prediction: PredictionResponse,
     db: Session
-) -> str:
+) -> tuple[str, list[TwoWayPrediction], float]:
     """
     Build context for a two-way player by running predictions for both roles.
 
@@ -331,7 +336,7 @@ async def _build_two_way_context(
         db: Database session
 
     Returns:
-        Formatted context string with both predictions
+        Tuple of (context_string, two_way_predictions_list, combined_aav)
     """
     # Get two-way stats
     two_way_stats = context_service.get_two_way_stats(player_name, db)
@@ -374,11 +379,31 @@ async def _build_two_way_context(
                 pitcher_prediction['predicted_aav'] = pitching['war_3yr'] * 8
                 pitcher_prediction['confidence_score'] = 50
 
-    # Build the two-way context
-    return context_service.build_two_way_context(
+    # Build the two-way context string
+    context = context_service.build_two_way_context(
         player_name=player_name,
         batter_prediction=batter_prediction,
         pitcher_prediction=pitcher_prediction,
         actual_aav=primary_prediction.actual_aav,
         actual_length=primary_prediction.actual_length
     )
+
+    # Build TwoWayPrediction objects for API response
+    two_way_predictions = [
+        TwoWayPrediction(
+            role="DH",
+            predicted_aav=batter_prediction['predicted_aav'],
+            predicted_length=batter_prediction['predicted_length'],
+            confidence_score=batter_prediction['confidence_score']
+        ),
+        TwoWayPrediction(
+            role="SP",
+            predicted_aav=pitcher_prediction['predicted_aav'],
+            predicted_length=pitcher_prediction['predicted_length'],
+            confidence_score=pitcher_prediction['confidence_score']
+        )
+    ]
+
+    combined_aav = batter_prediction['predicted_aav'] + pitcher_prediction['predicted_aav']
+
+    return context, two_way_predictions, combined_aav

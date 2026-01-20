@@ -77,6 +77,9 @@ class ContextService:
                 "the", "contract", "for", "about", "tell", "me", "show", "predict", "get",
                 "should", "can", "you", "his", "her", "their", "overpaid", "underpaid",
                 "deserve", "gotten", "got", "received", "analyze", "good", "perform",
+                # Prediction-related
+                "predicted", "prediction", "value", "salary", "paid", "pay", "money",
+                "projected", "projection", "estimate", "estimated", "aav", "annual",
                 # Stats-related
                 "war", "era", "avg", "stats", "batting", "pitching", "average",
             ]
@@ -94,13 +97,30 @@ class ContextService:
         ).order_by(Player.has_contract.desc()).limit(10).all()
 
         if not players:
-            # Try searching for each word individually (for cases like "soto" matching "Juan Soto")
-            for word in extracted_name.split():
+            # Try searching for each word individually
+            # Prioritize last word first (usually last name, more unique)
+            words = extracted_name.split()
+            words_to_try = list(reversed(words))  # Try last name first
+
+            for word in words_to_try:
                 if len(word) >= 3:
-                    players = db.query(Player).filter(
+                    candidates = db.query(Player).filter(
                         Player.name.ilike(f"%{word}%")
                     ).order_by(Player.has_contract.desc()).limit(10).all()
-                    if players:
+
+                    if candidates:
+                        # If we have multiple words, prefer candidates that match more words
+                        if len(words) > 1:
+                            # Score candidates by how many query words they match
+                            scored = []
+                            for c in candidates:
+                                name_lower = c.name.lower()
+                                matches = sum(1 for w in words if w in name_lower)
+                                scored.append((matches, c))
+                            scored.sort(key=lambda x: x[0], reverse=True)
+                            players = [c for _, c in scored]
+                        else:
+                            players = candidates
                         break
 
         if not players:

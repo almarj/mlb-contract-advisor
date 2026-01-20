@@ -207,6 +207,13 @@ export interface ChatRequest {
   query: string;
 }
 
+export interface TwoWayPrediction {
+  role: string;
+  predicted_aav: number;
+  predicted_length: number;
+  confidence_score: number;
+}
+
 export interface ChatResponse {
   response: string;
   prediction: PredictionResponse | null;
@@ -214,6 +221,11 @@ export interface ChatResponse {
   player_found: boolean;
   player_name: string | null;
   suggestions: string[];
+  // Two-way player fields
+  is_two_way_player: boolean;
+  two_way_predictions: TwoWayPrediction[] | null;
+  combined_aav: number | null;
+  // Claude availability
   claude_available: boolean;
   used_fallback: boolean;
 }

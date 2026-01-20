@@ -70,7 +70,7 @@ export function NLResponse({
                 {response.player_name}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {prediction.position}
+                {response.is_two_way_player ? 'DH + SP (Two-Way)' : prediction.position}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -90,8 +90,43 @@ export function NLResponse({
           </div>
         )}
 
-        {/* Prediction summary */}
-        {hasPrediction && (
+        {/* Prediction summary - Two-way player version */}
+        {hasPrediction && response.is_two_way_player && response.two_way_predictions && (
+          <div className="bg-primary/5 rounded-lg p-4 mb-4">
+            <div className="mb-3">
+              <Badge variant="secondary" className="text-xs mb-2">
+                ⚾ Two-Way Player
+              </Badge>
+            </div>
+            {/* Individual role predictions */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {response.two_way_predictions.map((pred) => (
+                <div key={pred.role} className="bg-background/50 rounded-lg p-3 text-center">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    As {pred.role}
+                  </p>
+                  <p className="text-xl font-bold font-mono text-primary">
+                    ${pred.predicted_aav.toFixed(1)}M
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {pred.predicted_length} yrs • {pred.confidence_score.toFixed(0)}% conf
+                  </p>
+                </div>
+              ))}
+            </div>
+            {/* Combined value */}
+            <div className="border-t pt-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Combined Value</p>
+              <p className="text-2xl font-bold font-mono text-primary">
+                ${response.combined_aav?.toFixed(1)}M
+              </p>
+              <p className="text-xs text-muted-foreground">per year</p>
+            </div>
+          </div>
+        )}
+
+        {/* Prediction summary - Standard player version */}
+        {hasPrediction && !response.is_two_way_player && (
           <div className="bg-primary/5 rounded-lg p-4 mb-4">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
