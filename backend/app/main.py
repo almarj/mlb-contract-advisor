@@ -26,7 +26,7 @@ from app.config import (
 from app.models.database import init_db, SessionLocal, run_migrations
 from app.models.schemas import HealthResponse
 from app.services.prediction_service import prediction_service
-from app.api import predictions, players, contracts, chat
+from app.api import predictions, players, contracts, chat, admin
 
 # Configure logging
 logging.basicConfig(
@@ -115,6 +115,7 @@ app.include_router(predictions.router, prefix=API_V1_PREFIX)
 app.include_router(players.router, prefix=API_V1_PREFIX)
 app.include_router(contracts.router, prefix=API_V1_PREFIX)
 app.include_router(chat.router, prefix=API_V1_PREFIX)
+app.include_router(admin.router, prefix=API_V1_PREFIX)
 
 
 @app.get("/", tags=["Root"])

@@ -30,6 +30,9 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
 CLAUDE_TIMEOUT = int(os.getenv("CLAUDE_TIMEOUT", "25"))  # seconds
 
+# Admin secret for protected operations (reseed, etc.)
+ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
+
 # CORS - Configure via ALLOWED_ORIGINS env var (comma-separated) or use defaults
 # For Railway: Set ALLOWED_ORIGINS to your frontend Railway URL
 _default_origins = [
