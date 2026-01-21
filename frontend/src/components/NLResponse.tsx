@@ -53,7 +53,14 @@ export function NLResponse({
     // Future: Chat bubble style for full chat panel
     return (
       <div className="bg-muted/50 rounded-lg p-4 max-w-[80%]">
-        <p className="text-sm whitespace-pre-wrap">{cleanResponse}</p>
+        <p className="text-sm whitespace-pre-wrap">
+          {cleanResponse.split(/(\*\*[^*]+\*\*)/).map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              return <strong key={i}>{part.slice(2, -2)}</strong>;
+            }
+            return part;
+          })}
+        </p>
       </div>
     );
   }
@@ -154,7 +161,13 @@ export function NLResponse({
         {/* AI explanation */}
         <div className="prose prose-sm max-w-none">
           <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-            {cleanResponse}
+            {cleanResponse.split(/(\*\*[^*]+\*\*)/).map((part, i) => {
+              // Convert **text** to bold
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={i}>{part.slice(2, -2)}</strong>;
+              }
+              return part;
+            })}
           </p>
         </div>
 
