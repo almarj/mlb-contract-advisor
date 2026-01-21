@@ -21,7 +21,6 @@ function HomeContent() {
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [howItWorksCollapsed, setHowItWorksCollapsed] = useState(false);
 
   // Natural language search state
@@ -163,25 +162,6 @@ function HomeContent() {
           )}
         </Card>
 
-        {/* Mode Toggle */}
-        <div className="flex justify-end mb-6">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <span className="text-sm text-muted-foreground">Simple</span>
-            <div className="relative">
-              <input
-                type="checkbox"
-                checked={showAdvanced}
-                onChange={(e) => setShowAdvanced(e.target.checked)}
-                className="sr-only"
-              />
-              <div className={`w-10 h-6 rounded-full transition-colors ${showAdvanced ? 'bg-primary' : 'bg-muted'}`}>
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${showAdvanced ? 'translate-x-5' : 'translate-x-1'}`} />
-              </div>
-            </div>
-            <span className="text-sm text-muted-foreground">Advanced</span>
-          </label>
-        </div>
-
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left: Form */}
@@ -210,10 +190,7 @@ function HomeContent() {
             </CardHeader>
             <CardContent>
               {prediction ? (
-                <PredictionResult
-                  prediction={prediction}
-                  showAdvanced={showAdvanced}
-                />
+                <PredictionResult prediction={prediction} />
               ) : (
                 <div className="text-center py-16 text-muted-foreground">
                   <svg className="w-16 h-16 mx-auto mb-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -20,10 +20,9 @@ import {
 
 interface PredictionResultProps {
   prediction: PredictionResponse;
-  showAdvanced: boolean;
 }
 
-export default function PredictionResult({ prediction, showAdvanced }: PredictionResultProps) {
+export default function PredictionResult({ prediction }: PredictionResultProps) {
   // Calculate assessment comparing actual vs predicted
   const getAssessment = (actualAAV: number | null, predictedAAV: number) => {
     if (actualAAV === null) {
@@ -482,8 +481,8 @@ export default function PredictionResult({ prediction, showAdvanced }: Predictio
         </Card>
       )}
 
-      {/* Feature Importance (Advanced Mode) */}
-      {showAdvanced && Object.keys(prediction.feature_importance).length > 0 && (
+      {/* Feature Importance */}
+      {Object.keys(prediction.feature_importance).length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">What Drives This Prediction</CardTitle>
