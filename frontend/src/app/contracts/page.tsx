@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import useSWR from 'swr';
+import { Header } from '@/components/Header';
 import { getContracts, getContractsSummary, formatAAV } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -157,31 +157,7 @@ export default function ContractsPage() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="bg-primary text-primary-foreground">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <Image
-                  src="https://github.com/almarj.png"
-                  alt="Logo"
-                  width={40}
-                  height={40}
-                  className="rounded-full"
-                />
-                <div>
-                  <h1 className="text-2xl font-bold">MLB Contract Advisor</h1>
-                  <p className="text-primary-foreground/70 text-sm">AI-Powered Contract Predictions</p>
-                </div>
-              </div>
-              <nav className="flex gap-4">
-                <Link href="/" className="hover:text-primary-foreground/80">Predict</Link>
-                <Link href="/compare" className="hover:text-primary-foreground/80">Compare</Link>
-                <Link href="/contracts" className="hover:text-primary-foreground/80 font-medium">Contracts</Link>
-              </nav>
-            </div>
-          </div>
-        </header>
+        <Header />
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 py-8">

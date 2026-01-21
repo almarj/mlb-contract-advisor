@@ -2,9 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
 import PredictionForm from '@/components/PredictionForm';
+import { Header } from '@/components/Header';
 import PredictionResult from '@/components/PredictionResult';
 import { NLSearch } from '@/components/NLSearch';
 import { NLResponse } from '@/components/NLResponse';
@@ -79,31 +78,7 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Image
-                src="https://github.com/almarj.png"
-                alt="Logo"
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
-              <div>
-                <h1 className="text-2xl font-bold">MLB Contract Advisor</h1>
-                <p className="text-primary-foreground/70 text-sm">AI-Powered Contract Predictions</p>
-              </div>
-            </div>
-            <nav className="flex gap-4">
-              <Link href="/" className="hover:text-primary-foreground/80 font-medium">Predict</Link>
-              <Link href="/compare" className="hover:text-primary-foreground/80">Compare</Link>
-              <Link href="/contracts" className="hover:text-primary-foreground/80">Contracts</Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">

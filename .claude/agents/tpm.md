@@ -40,7 +40,7 @@ When auditing documentation:
 
 ### 4. Backlog Review
 When reviewing the backlog with experts:
-1. Read current `BACKLOG.md` to understand tracked items
+1. Read current `backlog.md` to understand tracked items
 2. Ask each domain expert to review their section:
    - Are all known issues tracked?
    - Are priorities still accurate?
@@ -49,6 +49,15 @@ When reviewing the backlog with experts:
 3. Identify items that may affect multiple systems
 4. Surface any items that experts disagree on priority
 5. **Present proposed backlog updates for user approval**
+
+### 5. Session Completion / Backlog Update
+When the user asks to "update backlog with today's work" or similar:
+1. Run `git log --format="%h %ad %s" --date=short --since="YYYY-MM-DD"` to find recent commits
+2. Read current `backlog.md` to see what's already tracked
+3. Identify new features or fixes from commits that should be added to Completed Features
+4. Use the format: `- **Feature Name** (Mon DD, YYYY) - Brief description`
+5. Check if any Pending Features were completed and should be moved
+6. **Present proposed additions for user approval before editing**
 
 ## Workflow Protocol
 
@@ -132,7 +141,7 @@ Which should I investigate further, or would you like to clarify?
 ## Key Files to Reference
 
 - `CLAUDE.md` - Main architecture documentation
-- `BACKLOG.md` - Feature backlog and known issues
+- `backlog.md` - Feature backlog and known issues (uses inline dates for completed items)
 - `.claude/agents/ml-expert.md` - ML domain knowledge
 - `.claude/agents/backend-expert.md` - Backend domain knowledge
 - `.claude/agents/ui-expert.md` - UI/UX domain knowledge
