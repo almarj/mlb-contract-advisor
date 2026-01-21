@@ -83,27 +83,33 @@ function HomeContent() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Natural Language Search */}
-        <div className="mb-8" role="search" aria-label="Quick player search">
-          <NLSearch
-            variant="inline"
-            onSubmit={handleChatQuery}
-            isLoading={chatLoading}
-          />
-          {chatError && (
-            <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
-              {chatError}
+        <Card className="mb-8 bg-muted/30" role="search" aria-label="Quick player search">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm font-medium">Quick Search</span>
+              <span className="text-xs text-muted-foreground">Powered by AI</span>
             </div>
-          )}
-          {chatResponse && (
-            <div className="mt-4" aria-live="polite">
-              <NLResponse
-                response={chatResponse}
-                displayMode="card"
-                onClear={handleClearChat}
-              />
-            </div>
-          )}
-        </div>
+            <NLSearch
+              variant="inline"
+              onSubmit={handleChatQuery}
+              isLoading={chatLoading}
+            />
+            {chatError && (
+              <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+                {chatError}
+              </div>
+            )}
+            {chatResponse && (
+              <div className="mt-4" aria-live="polite">
+                <NLResponse
+                  response={chatResponse}
+                  displayMode="card"
+                  onClear={handleClearChat}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* How It Works Section - Collapsible */}
         <Card className="mb-8">

@@ -16,7 +16,7 @@ export function NLSearch({
   variant = 'inline',
   onSubmit,
   isLoading,
-  placeholder = 'Ask about any player...'
+  placeholder = 'Ask questions about contracts or player value...'
 }: NLSearchProps) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -91,24 +91,24 @@ export function NLSearch({
           <span>Try:</span>
           <button
             type="button"
-            onClick={() => setQuery('What would Juan Soto be worth?')}
+            onClick={() => setQuery('Is Juan Soto overpaid?')}
             className="hover:text-foreground hover:underline"
           >
-            Juan Soto
+            Soto&apos;s contract
           </button>
           <button
             type="button"
-            onClick={() => setQuery('How much should Shohei Ohtani get?')}
+            onClick={() => setQuery('What is Shohei Ohtani worth?')}
             className="hover:text-foreground hover:underline"
           >
-            Shohei Ohtani
+            Ohtani&apos;s value
           </button>
           <button
             type="button"
-            onClick={() => setQuery('What is Mookie Betts worth?')}
+            onClick={() => setQuery('How good is Mookie Betts?')}
             className="hover:text-foreground hover:underline"
           >
-            Mookie Betts
+            Betts&apos; stats
           </button>
         </div>
       )}
