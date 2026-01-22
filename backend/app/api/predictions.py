@@ -276,8 +276,8 @@ async def create_prediction(request_obj: Request, request: PredictionRequest, db
         import traceback
         error_trace = traceback.format_exc()
         logger.exception("Prediction failed for player %s: %s\n%s", request.name, str(e), error_trace)
-        # Return detailed error in development/debug mode
+        # Return generic error message to client (details logged above)
         raise HTTPException(
             status_code=500,
-            detail=f"Prediction error: {str(e)}"
+            detail="An error occurred processing your prediction request"
         )
