@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Predict' },
@@ -73,7 +74,7 @@ export function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex gap-4">
+          <nav className="hidden md:flex items-center gap-4">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
@@ -85,23 +86,27 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
+            <ThemeToggle />
           </nav>
 
-          {/* Mobile Menu Button */}
-          <button
-            ref={buttonRef}
-            type="button"
-            className="md:hidden p-2 -mr-2 hover:bg-primary-foreground/10 rounded-lg"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-expanded={mobileMenuOpen}
-            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-          >
-            {mobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </button>
+          {/* Mobile: Theme Toggle + Menu Button */}
+          <div className="md:hidden flex items-center gap-1">
+            <ThemeToggle />
+            <button
+              ref={buttonRef}
+              type="button"
+              className="p-2 -mr-2 hover:bg-primary-foreground/10 rounded-lg"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            >
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Dropdown */}
