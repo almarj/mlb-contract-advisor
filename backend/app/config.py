@@ -27,7 +27,7 @@ CHAT_RATE_LIMIT = "50/hour"  # Stricter for Claude API calls
 
 # Anthropic Claude API
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-3-5-haiku-20241022")
 CLAUDE_TIMEOUT = int(os.getenv("CLAUDE_TIMEOUT", "25"))  # seconds
 
 # Admin secret for protected operations (reseed, etc.)
