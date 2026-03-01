@@ -44,10 +44,6 @@ npm-debug.log*
 *.pyc
 *.pem
 
-# Private docs (BRD/PRD)
-BRD.md
-PRD.md
+# Private docs (keep docx out of git)
 *_BRD.docx
 *_PRD.docx
-CLAUDE.md
-BACKLOG.md
